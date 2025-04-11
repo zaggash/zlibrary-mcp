@@ -5,7 +5,7 @@ const { ensureZLibraryInstalled } = require('./lib/python-env');
 const { 
   searchBooks, 
   getBookById, 
-  getDownloadLink,
+  getDownloadInfo,
   fullTextSearch,
   getDownloadHistory,
   getDownloadLimits,
@@ -136,8 +136,8 @@ async function start() {
     });
 
     server.registerTool({
-      name: 'get_download_link',
-      description: 'Get download link for a book',
+      name: 'get_download_info',
+      description: 'Get download information for a book including its download URL',
       parameters: {
         type: 'object',
         properties: {
@@ -156,9 +156,9 @@ async function start() {
       handler: async (params) => {
         try {
           const { id, format } = params;
-          return await getDownloadLink(id, format);
+          return await getDownloadInfo(id, format);
         } catch (error) {
-          return { error: error.message || 'Failed to get download link' };
+          return { error: error.message || 'Failed to get download information' };
         }
       }
     });

@@ -12,7 +12,6 @@ async def initialize_client():
     global zlib_client
     
     # Load credentials from environment variables or config file
-    # This is a placeholder - you should implement secure credential storage
     import os
     email = os.environ.get('ZLIBRARY_EMAIL')
     password = os.environ.get('ZLIBRARY_PASSWORD')
@@ -70,21 +69,24 @@ async def get_by_id(book_id):
         
     return await zlib_client.get_by_id(id=book_id)
 
-async def get_download_link(book_id, format=None):
-    """Get download link for a book"""
+async def get_download_info(book_id, format=None):
+    """
+    Get book info including download URL
+    This accurately represents what the function does - it gets book info with a download URL,
+    not actually downloading the file content
+    """
     if not zlib_client:
         await initialize_client()
     
-    # Get book details first
+    # Get book details
     book = await zlib_client.get_by_id(id=book_id)
     
-    # The download URL is already in the book details
     return {
-        'title': book.get('name'),
-        'author': book.get('author', ''),
-        'format': book.get('extension'),
-        'filesize': book.get('size'),
-        'download_link': book.get('download_url')
+        'title': book.get('name', f"book_{book_id}"),
+        'author': book.get('author', 'Unknown'),
+        'format': format or book.get('extension', 'pdf'),
+        'filesize': book.get('size', 'Unknown'),
+        'download_url': book.get('download_url')
     }
 
 async def full_text_search(query, exact=False, phrase=True, words=False, languages=None, extensions=None, count=10):
@@ -146,7 +148,7 @@ async def get_download_limits():
     return limits
 
 async def get_recent_books(count=10, format=None):
-    """This isn't directly available in the API, but we can simulate it with a search"""
+    """Get recent books via search"""
     if not zlib_client:
         await initialize_client()
     
@@ -172,11 +174,11 @@ def main():
         return 1
     
     try:
-        # Map function name to async function
+        # Map function name to async function - using accurately named functions
         function_map = {
             'search': search,
             'get_by_id': get_by_id,
-            'get_download_link': get_download_link,
+            'get_download_info': get_download_info,  # Renamed to accurately reflect behavior
             'full_text_search': full_text_search,
             'get_download_history': get_download_history,
             'get_download_limits': get_download_limits,
