@@ -1,84 +1,31 @@
-# zlibrary-MCP Server
+# Z-Library MCP Server
 
-A Model Context Protocol (MCP) server for interacting with the zlibrary API to search and download books.
+This Model Context Protocol (MCP) server provides access to Z-Library for AI coding assistants like RooCode and Cline for VSCode.
 
-## Overview
+## Features
 
-This project provides a Node.js server that interfaces with the zlibrary service through a Python bridge. It offers endpoints for searching books and retrieving download links.
+- Search for books by title, author, year, language, and format
+- Get detailed book information
+- Get download links for books
+- Full-text search within book contents
+- View download history and limits
 
 ## Prerequisites
 
-- Node.js (v14 or higher)
-- Python 3.6 or higher
-- npm or yarn
+- Node.js 14+
+- Python 3.7+
+- Z-Library Python client installed (`pip install zlibrary`)
 
 ## Installation
 
-1. Clone this repository
-2. Install Node.js dependencies:
-
 ```bash
+# Clone this repository
+git clone https://github.com/yourusername/zlibrary-mcp.git
+cd zlibrary-mcp
+
+# Install dependencies
 npm install
-```
 
-3. Install required Python packages:
-
-```bash
-pip install requests
-```
-
-## Usage
-
-Start the server:
-
-```bash
-npm start
-```
-
-The server will run on port 3000 by default. You can change this by setting the `PORT` environment variable.
-
-## API Endpoints
-
-### Health Check
-
-```
-GET /health
-```
-
-Returns a simple status message to confirm the service is running.
-
-### Search Books
-
-```
-POST /api/search
-```
-
-Request body:
-```json
-{
-  "query": "book title or author name"
-}
-```
-
-### Get Download Link
-
-```
-POST /api/download
-```
-
-Request body:
-```json
-{
-  "bookId": "book123"
-}
-```
-
-## Notes
-
-- This project is for educational purposes only.
-- The zlibrary domain may change periodically, so you might need to update the base URL in python-bridge.py.
-- Respect copyright laws and terms of service in your jurisdiction.
-
-## License
-
-MIT
+# Set environment variables for Z-Library credentials
+export ZLIBRARY_EMAIL="your-email@example.com"
+export ZLIBRARY_PASSWORD="your-password"

@@ -1,22 +1,25 @@
 {
   "name": "zlibrary-mcp",
   "version": "1.0.0",
-  "description": "MCP server for interacting with zlibrary API",
+  "description": "Z-Library MCP server for AI assistants",
   "main": "index.js",
+  "bin": {
+    "zlibrary-mcp": "./index.js"
+  },
   "scripts": {
-    "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js"
   },
   "keywords": [
-    "zlibrary",
     "mcp",
-    "model-context-protocol"
+    "zlibrary",
+    "ai",
+    "roocode",
+    "cline"
   ],
+  "author": "loganrooks",
+  "license": "MIT",
   "dependencies": {
-    "axios": "^1.6.2",
-    "express": "^4.18.2",
+    "@modelcontextprotocol/server": "^0.4.0",
     "python-shell": "^5.0.0"
-  },
-  "author": "",
-  "license": "MIT"
+  }
 }
