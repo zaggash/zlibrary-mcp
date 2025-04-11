@@ -7,7 +7,8 @@
     "zlibrary-mcp": "./index.js"
   },
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
     "mcp",
@@ -21,5 +22,16 @@
   "dependencies": {
     "@modelcontextprotocol/server": "^0.4.0",
     "python-shell": "^5.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loganrooks/zlibrary-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/loganrooks/zlibrary-mcp/issues"
+  },
+  "homepage": "https://github.com/loganrooks/zlibrary-mcp#readme",
+  "engines": {
+    "node": ">=14.0.0"
   }
 }
