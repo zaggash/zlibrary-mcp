@@ -1,4 +1,7 @@
 node_modules/
+coverage/
+__mocks__
+__tests__
 .env
 __pycache__/
 *.py[cod]

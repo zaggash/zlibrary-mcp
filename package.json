@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest --coverage"
   },
   "keywords": [
     "mcp",
@@ -20,7 +20,7 @@
   "author": "loganrooks",
   "license": "MIT",
   "dependencies": {
-    "@modelcontextprotocol/server": "^0.4.0",
+    "@modelcontextprotocol/sdk": "^1.9.0",
     "python-shell": "^5.0.0"
   },
   "repository": {
@@ -33,5 +33,12 @@
   "homepage": "https://github.com/loganrooks/zlibrary-mcp#readme",
   "engines": {
     "node": ">=14.0.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "mock-fs": "^5.2.0",
+    "nock": "^13.4.0",
+    "sinon": "^16.1.0",
+    "supertest": "^6.3.3"
   }
 }
