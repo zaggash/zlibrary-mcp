@@ -13,7 +13,6 @@ const {
   downloadBookToFile
 } = require('./lib/zlibrary-api');
 
-
 // Check for Python dependencies before starting
 async function start() {
   try {
@@ -28,8 +27,8 @@ async function start() {
     
     // Create MCP server
     const server = new MCPServer();
-
-    // Register tools
+    
+    // Register search_books tool
     server.registerTool({
       name: 'search_books',
       description: 'Search for books in Z-Library',
@@ -112,6 +111,7 @@ async function start() {
       }
     });
 
+    // Register get_book_by_id tool
     server.registerTool({
       name: 'get_book_by_id',
       description: 'Get detailed information about a book by its ID',
@@ -135,6 +135,7 @@ async function start() {
       }
     });
 
+    // Register get_download_info tool
     server.registerTool({
       name: 'get_download_info',
       description: 'Get download information for a book including its download URL',
@@ -163,6 +164,7 @@ async function start() {
       }
     });
 
+    // Register full_text_search tool
     server.registerTool({
       name: 'full_text_search',
       description: 'Search for books containing specific text in their content',
@@ -245,6 +247,7 @@ async function start() {
       }
     });
 
+    // Register get_download_history tool
     server.registerTool({
       name: 'get_download_history',
       description: 'Get user\'s book download history',
@@ -268,6 +271,7 @@ async function start() {
       }
     });
 
+    // Register get_download_limits tool
     server.registerTool({
       name: 'get_download_limits',
       description: 'Get user\'s current download limits',
@@ -284,6 +288,40 @@ async function start() {
       }
     });
 
+    // Register get_recent_books tool
+    server.registerTool({
+      name: 'get_recent_books',
+      description: 'Get recently added books in Z-Library',
+      parameters: {
+        type: 'object',
+        properties: {
+          count: {
+            type: 'number',
+            description: 'Number of books to return',
+            optional: true
+          },
+          format: {
+            type: 'string',
+            description: 'Filter by file format (e.g., "pdf", "epub")',
+            optional: true
+          }
+        }
+      },
+      handler: async (params) => {
+        try {
+          const { count = 10, format } = params;
+          const results = await getRecentBooks(count, format);
+          return {
+            books: results,
+            total: results.length
+          };
+        } catch (error) {
+          return { error: error.message || 'Failed to get recent books' };
+        }
+      }
+    });
+
+    // Register download_book_to_file tool
     server.registerTool({
       name: 'download_book_to_file',
       description: 'Download a book directly to a local file',
