@@ -22,5 +22,8 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
+venv/
+.venv/
+requirements.txt
 .roo/
 .roomodes
