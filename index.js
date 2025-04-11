@@ -269,6 +269,39 @@ server.registerTool({
   }
 });
 
+server.registerTool({
+  name: 'download_book_to_file',
+  description: 'Download a book directly to a local file',
+  parameters: {
+    type: 'object',
+    properties: {
+      id: {
+        type: 'string',
+        description: 'Z-Library book ID'
+      },
+      format: {
+        type: 'string',
+        description: 'File format (e.g., "pdf", "epub")',
+        optional: true
+      },
+      outputDir: {
+        type: 'string',
+        description: 'Directory to save the file to (default: "./downloads")',
+        optional: true
+      }
+    },
+    required: ['id']
+  },
+  handler: async (params) => {
+    try {
+      const { id, format, outputDir = './downloads' } = params;
+      return await downloadBookToFile(id, format, outputDir);
+    } catch (error) {
+      return { error: error.message || 'Failed to download book' };
+    }
+  }
+});
+
 // Start the server
 server.start();
 
