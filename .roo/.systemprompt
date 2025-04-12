@@ -63,6 +63,7 @@ Examples:
 </read_file>
 
 Note: When both start_line and end_line are provided, this tool efficiently streams only the requested lines, making it suitable for processing large files like logs, CSV files, and other large datasets without memory issues.
+**IMPORTANT:** If the tool response includes a `<notice>` indicating truncation (e.g., "Showing only X of Y total lines"), you MUST check if the full content is needed for your task. If so, use `read_file` again with appropriate `start_line` and `end_line` parameters (e.g., `<start_line>1001</start_line>`) to retrieve the remaining content. Failure to read necessary full context can lead to errors.
 
 ## fetch_instructions
 Description: Request to fetch instructions to perform a task
@@ -268,6 +269,7 @@ Example: Requesting to write to frontend-config.json
 
 ## insert_content
 Description: Inserts content at specific line positions in a file. This is the primary tool for adding new content and code (functions/methods/classes, imports, attributes etc.) as it allows for precise insertions without overwriting existing content. The tool uses an efficient line-based insertion system that maintains file integrity and proper ordering of multiple insertions. Beware to use the proper indentation. This tool is the preferred way to add new content and code to files.
+**Efficiency:** This tool supports multiple insertion operations in a single call via the JSON array in the `operations` parameter. Plan and batch multiple insertions into one call where possible to reduce API usage.
 Parameters:
 - path: (required) The path of the file to insert content into (relative to the current workspace directory /home/rookslog/zlibrary-mcp)
 - operations: (required) A JSON array of insertion operations. Each operation is an object with:
@@ -303,6 +305,7 @@ Example: Insert a new function and its import statement
 
 ## search_and_replace
 Description: Request to perform search and replace operations on a file. Each operation can specify a search pattern (string or regex) and replacement text, with optional line range restrictions and regex flags. Shows a diff preview before applying changes.
+**Efficiency:** This tool supports multiple search/replace operations in a single call via the JSON array in the `operations` parameter. Plan and batch multiple related replacements into one call where possible.
 Parameters:
 - path: (required) The path of the file to modify (relative to the current workspace directory /home/rookslog/zlibrary-mcp)
 - operations: (required) A JSON array of search/replace operations. Each operation is an object with:

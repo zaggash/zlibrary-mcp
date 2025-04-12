@@ -29,6 +29,11 @@ core_workflow: |
       - Check `run_command` exit code (must be 0 for success) and `stderr` from the user response.
   8.  **Progress Update:** Log successful steps and any halts/errors in the memory bank using `primitive_update_memory_bank.py` (see `memory_bank_updates.update_process`). Note the specific file modified.
   9.  **Completion:** Use `<attempt_completion>` only when all steps are successfully completed, or when blocked by an unrecoverable error/discrepancy reported to the user.
+  # **Efficiency & Reliability Guidelines:**
+  # - **Task Delegation:** Prefer `<new_task>` for distinct sub-tasks (code gen, testing, complex edits). Provide focused context in the message to minimize token usage. Avoid `<switch_mode>` for simple delegation.
+  # - **Tool Usage Verification:** ALWAYS verify context with `<read_file>` before modifying files (`apply_diff`, `write_to_file`, `insert_content`, `search_and_replace`). Check `<read_file>` results for truncation notices and read full content if needed.
+  # - **Multi-Operation Tools:** Use multi-block `apply_diff`, multi-operation `insert_content`, and multi-operation `search_and_replace` where appropriate to batch related changes into single tool calls (after verification).
+  # - **Syntax Adherence:** Follow tool syntax precisely as defined in `.systemprompt`. Double-check parameters, JSON formatting, and diff structures.
 
 # --- Error Handling ---
 error_handling: |
@@ -85,7 +90,8 @@ memory_bank_updates:
   frequency: |
       UPDATE MEMORY BANK AT THESE POINTS:
       1. At the beginning of each task (read via initialization).
-      2. After successfully completing a plan step (write, note file modified).
+      2. When encountering and reporting an error or discrepancy (write). # Changed from 'after every step'
+      # Efficiency Note: Update activeContext less frequently, only on significant state changes or blocks. Log step completion only if necessary for debugging or critical tracking.
       3. When encountering and reporting an error or discrepancy (write).
       4. Before calling attempt_completion (write final status).
       5. On explicit "Update Memory Bank" or "UMB" command.
@@ -99,6 +105,17 @@ memory_bank_updates:
          - Provide the escaped JSON string as the value for that argument.
          - **Crucially**, provide the specific format key using the corresponding `--*-key` argument (e.g., `--mode-specific-key "System Modification Log"`, `--mode-specific-key "Execution Issues Log"`). The key for `--active-context` and `--feedback` is typically "default".
          - Use `--append` for log entries (mode-specific, feedback). Do NOT use `--append` for `--active-context`.
+         # **Multi-Operation Efficiency:** When planning multiple file changes, verify context for all changes first using `read_file` (checking for truncation). Then, apply related changes using a single tool call if supported:
+         #   - `apply_diff`: Use multiple SEARCH/REPLACE blocks.
+         #   - `insert_content`: Use multiple operations in the JSON array.
+         #   - `search_and_replace`: Use multiple operations in the JSON array.
+         7. **Updating Global Context:** If your task involves significant architectural changes, defining new system-wide patterns, or making strategic decisions impacting multiple modes, update `globalContext.md`.
+            - Use `--global-context '{...JSON...}'` with the appropriate `--global-context-key` (e.g., "Decision Log", "System Patterns").
+            - Ensure the JSON payload matches the schema defined in `memory_schemas.yaml` for that key.
+            - Example (Logging a Decision):
+              ```xml
+              <run_command><command>python .roo/scripts/primitive/primitive_update_memory_bank.py --mode-slug system-modifier --global-context '{"title": "Adopt XYZ Pattern", "context": "...", "decision": "...", "justification": "..."}' --global-context-key "Decision Log" --append</command></run_command>
+              ```
       5. **Example (Logging a Completed Step):**
          ```xml
          <run_command>
@@ -181,6 +198,8 @@ memory_bank_updates:
 umb: # Standard UMB using primitive script
   trigger: "^(Update Memory Bank|UMB)$"
   instructions: |
+      # **Efficiency Note:** Consolidate updates. Trigger UMB only when necessary (e.g., task completion, significant state change).
+      # **Tool Reminder:** Ensure JSON payloads for `primitive_update_memory_bank.py` are correctly formatted and escaped. Use correct `--*-key` arguments as per schemas.
       1. Halt Current Task. Acknowledge Command: '[MEMORY BANK: UPDATING]'. Review Chat History.
       2. Construct JSON payloads for activeContext, mode-specific (System Modification Log or Execution Issues Log), and feedback files based on recent activity, matching the schemas.
       3. Call `primitive_update_memory_bank.py` script with appropriate arguments (`--active-context`, `--mode-specific`, `--feedback`), corresponding format keys (`--*-key`), and escaped JSON payloads. Use `--append` for mode-specific and feedback. Ensure keys like "System Modification Log" or "Execution Issues Log" are used for mode-specific updates. Use "default" for active-context and feedback keys.
