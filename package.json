@@ -3,6 +3,11 @@
   "version": "1.0.0",
   "description": "Z-Library MCP server for AI assistants",
   "main": "index.js",
+  "type": "commonjs",
+  "exports": {
+    ".": "./index.js",
+    "./lib/*": "./lib/*"
+  },
   "bin": {
     "zlibrary-mcp": "./index.js"
   },
@@ -20,7 +25,7 @@
   "author": "loganrooks",
   "license": "MIT",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.9.0",
+    "@modelcontextprotocol/sdk": "1.8.0",
     "python-shell": "^5.0.0"
   },
   "repository": {

@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
-const { createServer } = require('@modelcontextprotocol/sdk');
+// Change the import style to be more compatible with different Node.js versions
+const sdk = require('@modelcontextprotocol/sdk/lib/index');
+const { createServer } = sdk;
 const { ensureZLibraryInstalled } = require('./lib/python-env');
 const { 
   searchBooks, 

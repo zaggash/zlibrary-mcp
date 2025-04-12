@@ -1,0 +1,422 @@
+active_context:
+  default: |
+    ### [{timestamp}] - {title}
+    - **Focus:** {focus}
+    - **Actions:** {actions}
+    - **Status:** {status}
+    ---
+
+global_context:
+  Product Context: |
+    #### [{timestamp}] - {title}
+    - **Goal:** {goal}
+    - **Initial State:** {initial_state}
+    - **{phase_name} Focus:** {phase_focus}
+    ---
+  System Patterns: |
+    #### [{timestamp}] - {title}
+    ```mermaid
+    {diagram}
+    ```
+    - **Description:** {description}
+    ---
+  Decision Log: |
+    #### [{timestamp}] - Decision: {title}
+    - **Context:** {context}
+    - **Decision:** {decision}
+    - **Justification:** {justification}
+    - **Alternatives Considered:** {alternatives}
+    ---
+  Progress: |
+    #### [{timestamp}] - {title}
+    - **Status:** {status}
+    - **Deliverables:** {deliverables}
+    {notes_section} # Placeholder for optional notes section
+    ---
+
+feedback:
+  default: |
+    ### [{timestamp}] - Source: {source}
+    - **Issue/Feedback**: {issue}
+    - **Analysis**: {analysis}
+    - **Action Taken/Learnings**: {action}
+    ---
+
+maintenance:
+  Maintenance Log: | 
+    | {timestamp} | {action} | {description} |
+  Known Issues: |
+    - [{timestamp}] {issue_description} (Status: {status})
+  Structure Changes: |
+    - [{timestamp}] {change_description}
+  Future Improvements: |
+    - [{timestamp}] {improvement_idea}
+
+# --- Mode-Specific Formats ---
+sparc:
+  Delegations Log: |
+    ### [{timestamp}] Task: {task_name}
+    - Assigned to: {mode_slug}
+    - Description: {description}
+    - Expected deliverable: {deliverable}
+    - Status: {status}
+    - Completion time: {completion_time}
+    - Outcome: {outcome}
+    - Link to Progress Entry: {progress_link}
+    ---
+  Workflow State: |
+    ### Workflow State Update - [{timestamp}]
+    - Current phase: {phase}
+    - Phase start: {timestamp}
+    - Current focus: {focus}
+    - Next actions: {actions}
+    - Last Updated: {timestamp}
+    ---
+
+tdd:
+  Test Plans:
+    _header: | # Template for the overall plan entry header
+      ### Test Plan: {title} - {timestamp}
+    _unit_test_item: | # Template for each unit test item in the list
+      - Test Case: {description} / Expected: {expected} / Status: {status}
+    _integration_test_item: | # Template for each integration test item
+      - Test Case: {description} / Expected: {expected} / Status: {status}
+    _edge_case_item: | # Template for each edge case item
+      - {description}: {test_approach}
+  Test Coverage Summary: |
+    ### Coverage Update: [{timestamp}]
+    - **Overall**: Line: {line}% / Branch: {branch}% / Function: {function}%
+    - **By Component**: `{components}`
+    - **Areas Needing Attention**: {attention_areas}
+    ---
+  Test Fixtures: |
+    ### Fixture: {fixture_name} - [{timestamp}]
+    - **Purpose**: {purpose} / **Location**: `{location}` / **Usage**: {usage}
+    ---
+  TDD Cycles Log: |
+    ### TDD Cycle: {feature_component} - [{timestamp}]
+    - **Start**: {start_time} / **End**: {end_time}
+    - **Red**: {red_description}
+    - **Green**: {green_description}
+    - **Refactor**: {refactor_description}
+    - **Outcomes**: {outcomes}
+    ---
+  Test Execution Results: |
+    ### Test Run: [{timestamp}]
+    - **Trigger**: {trigger} / **Env**: {env} / **Suite**: {suite}
+    - **Result**: {result} / **Summary**: {summary}
+    - **Report Link**: {report_link} / **Failures**: {failures}
+    ---
+
+code:
+  Implementation Notes: |
+    ### Implementation: {feature_component} - [{timestamp}]
+    - **Approach**: {approach}
+    - **Key Files Modified/Created**: {files}
+    - **Notes**: {notes}
+    ---
+  Technical Debt Log: |
+    ### Tech Debt: {issue_name_id} - [Status: {status}] - [{timestamp}]
+    - **Identified**: {identified_time}
+    - **Location**: `{location}`
+    - **Description**: {description} / **Impact**: {impact} / **Priority**: {priority}
+    - **Proposed solution**: {solution}
+    - **Resolution Notes**: {resolution} / **Resolved Date**: {resolved_date}
+    ---
+  Dependencies Log: |
+    ### Dependency: {dependency_name} - [{timestamp}]
+    - **Version**: {version} / **Purpose**: {purpose} / **Used by**: {components} / **Config notes**: {config_notes}
+    ---
+  Code Patterns Log: |
+    ### Code Pattern: {pattern_name} - [{timestamp}]
+    - **Description**: {description} / **Example Usage**: {example_usage} / **Rationale**: {rationale}
+    ---
+
+spec-pseudocode:
+  Functional Requirements: |
+    ### Feature: {feature_name} - [{timestamp}]
+    - Description: {description}
+    - Acceptance criteria: {acceptance_criteria} # List or string
+    - Dependencies: {dependencies}
+    - Status: {status}
+    ---
+  System Constraints: |
+    ### Constraint: {constraint_name} - [{timestamp}]
+    - Description: {description}
+    - Impact: {impact}
+    - Mitigation strategy: {mitigation_strategy}
+    ---
+  Edge Cases: |
+    ### Edge Case: {feature_component} - [{timestamp}]
+    - Scenario: {scenario}
+    - Expected behavior: {expected_behavior}
+    - Testing approach: {testing_approach}
+    ---
+  Pseudocode Library:
+    _header: |
+      ### Pseudocode: {component_feature} - {function_name} - [{timestamp}]
+    _content: |
+      ```pseudocode
+      {pseudocode}
+      ```
+    _tdd_anchors_item: |
+      - Test case: {description}
+      ---
+
+architect:
+  System Diagrams: |
+    ### Diagram: {diagram_name} - [{timestamp}]
+    - Description: {description}
+    ```mermaid
+    {diagram_code}
+    ```
+    **Notes:** {notes}
+    ---
+  Component Specifications: |
+    ### Component Specification: {component_name} - [{timestamp}]
+    - **Responsibility**: {responsibility}
+    - **Dependencies**: {dependencies}
+    - **Interfaces Exposed**: {interfaces_exposed}
+    - **Internal Structure (Optional High-Level)**: {internal_structure}
+    ---
+  Interface Definitions: |
+    ### Interface Definition: {interface_name} - [{timestamp}]
+    - **Purpose**: {purpose}
+    #### Method/Endpoint: {method_endpoint_name}
+    - Input: {input} / Output: {output} / Behavior: {behavior} / Security: {security_notes}
+    ---
+  Data Models: |
+    ### Data Model: {model_name} - [{timestamp}]
+    - **Purpose**: {purpose}
+    - **Structure**: {structure} # JSON or similar
+    - **Relationships**: {relationships}
+    ---
+
+security-review:
+  Security Findings Log: |
+    ### Finding: {finding_id} - {short_description} - [Status: {status}] - [{timestamp}]
+    - **Severity**: {severity} / **Components**: {components} / **Description**: {description} / **OWASP**: {owasp} / **PoC**: {poc} / **Remediation**: {remediation} / **Resolved**: {resolved_time}
+    ---
+  Threat Models: |
+    ### Threat Model: {component_feature} - [{timestamp}]
+    - **Diagram**: {diagram_link_desc} / **Boundaries**: {boundaries} / **Actors**: {actors}
+    - **Threats**: {threats_list} # List of threat objects/strings
+    ---
+  Project Vulnerability Patterns: |
+    ### Pattern: {pattern_name} - [{timestamp}]
+    - **Description**: {description} / **Examples**: {examples} / **Locations**: {locations} / **Secure Practice**: {secure_practice} / **Last Seen**: {last_seen}
+    ---
+  Security Tool Usage: |
+    ### Tool Usage: {tool_name} - [{timestamp}]
+    - **Target**: {target} / **Config**: {config} / **Results**: {results} / **Notes**: {notes}
+    ---
+  Compliance Checks: |
+    ### Compliance Check: {requirement_id} - [{timestamp}]
+    - **Controls**: {controls} / **Status**: {status} / **Evidence**: {evidence} / **Notes**: {notes}
+    ---
+
+docs-writer:
+  Documentation Plan: |
+    ### Plan Item: {doc_section_name} - [{timestamp}]
+    - **Type**: {type} / **Audience**: {audience} / **Outline**: {outline} / **Status**: {status} / **Owner**: {owner} / **Source**: {source} / **Location**: {location}
+    ---
+  Project Glossary & Terminology: |
+    ### Term: {term_name} - [{timestamp}]
+    - **Definition**: {definition} / **Usage**: {usage}
+    #### Naming Conventions: {naming_conventions}
+    ---
+  Documentation Debt Log: |
+    ### Debt Item: {missing_outdated_topic} - [Status: {status}] - [{timestamp}]
+    - **Location**: {location} / **Description**: {description} / **Priority**: {priority} / **Resolution**: {resolution} / **Resolved Date**: {resolved_date}
+    ---
+  Documentation User Feedback: |
+    ### Feedback: [{timestamp}]
+    - **Source**: {source} / **Document**: {document} / **Feedback**: {feedback} / **Analysis**: {analysis} / **Action**: {action}
+    ---
+  Documentation Style Guide: |
+    #### Style Guide Update - [{timestamp}]
+    - Formatting (Markdown): {formatting_markdown} / Code blocks: {formatting_code_blocks}
+    - Tone: {tone}
+    - Templates: {templates}
+    ---
+
+integration:
+  Integration Points Catalog: |
+    ### Point: {point_name} - [{timestamp}]
+    - **Components**: {components} / **Type**: {type} / **Contract**: {contract} / **Data Flow**: {data_flow} / **Protocol**: {protocol} / **Deps**: {deps} / **Status**: {status} / **Issues**: {issues}
+    ---
+  System Dependency Map: |
+    ### Dependency Map Update: [{timestamp}] - {update_description}
+    {diagram} # Optional Mermaid diagram
+    - Dependencies: {dependencies} # Object/string representation
+    ---
+  Integration Test Scenarios: |
+    ### Scenario: {scenario_name} - [{timestamp}]
+    - **Components**: {components} / **Steps**: {steps} / **Expected**: {expected} / **Status**: {status} / **Last Run**: {last_run_timestamp} - {last_run_result}
+    ---
+  Integration Issues Log: |
+    ### Issue: {issue_id} - {short_desc} - [Status: {status}] - [{timestamp}]
+    - **Identified**: {identified_timestamp} / **Components**: {components} / **Symptoms**: {symptoms} / **Root Cause**: {root_cause} / **Resolution**: {resolution} / **Resolved Date**: {resolved_date}
+    ---
+  Integration Release Notes: |
+    ### Release Notes - Version {version} - [{timestamp}]
+    #### New Integrations: {new_integrations}
+    #### Changes: {changes}
+    #### Fixes: {fixes}
+    #### Known Issues: {known_issues}
+    ---
+
+monitor: # Renamed from post-deployment-monitoring-mode
+  Metrics Catalog: |
+    ### Metric: {metric_name} - [{timestamp}]
+    - **Type**: {type} / **Desc**: {desc} / **Source**: {source} / **Labels**: {labels} / **Query**: {query} / **Range**: {range} / **Alert(s)**: {alerts}
+    ---
+  Alerting Rules: |
+    ### Alert: {alert_name} - [{timestamp}]
+    - **Metric/Expr**: {metric_expr} / **Threshold**: {threshold} / **Duration**: {duration} / **Severity**: {severity} / **Desc**: {desc} / **Notify**: {notify} / **Runbook**: {runbook}
+    ---
+  Production Incident History: |
+    ### Incident: {incident_id} - {short_desc} - [{timestamp}]
+    - **Detected**: {detected} / **Resolved**: {resolved} / **Duration**: {duration} / **Severity**: {severity} / **Affected**: {affected} / **Impact**: {impact} / **Symptoms**: {symptoms} / **Root Cause**: {root_cause} / **Resolution**: {resolution} / **Timeline**: {timeline} / **Lessons**: {lessons} / **Related**: {related}
+    ---
+  Service Level Objectives (SLOs): |
+    ### SLO: {slo_name} - [{timestamp}]
+    - **Desc**: {desc} / **Metric(SLI)**: {metric_sli} / **Target**: {target}% / **Window**: {window} / **Status**: {status}% - [{status_category}] / **Budget**: {budget}%
+    ---
+  Performance Benchmarks: |
+    ### Benchmark: {benchmark_name} - [{timestamp}]
+    - **Metric**: {metric} / **Baseline**: {baseline_value} @ {baseline_date} / **Context**: {context} / **Current**: {current_value} @ {current_date} / **Trend**: {trend}
+    ---
+
+optimizer: # Renamed from refinement-optimization-mode
+  Optimization History Log: |
+    ### Optimization: [{timestamp}] - {short_description}
+    - **Target**: `{target}` / **Type**: {type} / **Desc**: {desc} / **Metrics Before**: {metrics_before} / **Metrics After**: {metrics_after} / **Related Debt**: {related_debt} / **Related Issue**: {related_issue}
+    ---
+  Technical Debt (Optimization Focus): |
+    ### Tech Debt Item: {ref_id} - [Status: {status}] - [{timestamp}]
+    - **Location**: `{location}` / **Desc**: {desc} / **Approach**: {approach} / **Resolution Date**: {resolution_date} / **Link**: {link}
+    ---
+  Performance Analysis Reports: |
+    ### Report: [{timestamp}] - {tool_used}
+    - **Target**: {target} / **Trigger**: {trigger} / **Findings**: {findings} / **Summary**: {summary} / **Link**: {link} / **Insights**: {insights}
+    ---
+
+ask:
+  Guidance Patterns Log: |
+    ### Pattern: [{timestamp}] - {pattern_name}
+    - **Problem Context**: {problem_context}
+    - **Guidance Approach**: {guidance_approach}
+    - **Outcome**: {outcome}
+    - **Effectiveness Notes**: {effectiveness_notes}
+    ---
+  Task Formulation Examples: |
+    ### Example Task: {target_mode} - [{timestamp}]
+    - **User Need/Question**: {user_need}
+    - **Formulated Task**: {formulated_task} # XML string
+    - **Key Context Provided**: {key_context_provided}
+    ---
+  Mode Coordination Observations: |
+    ### Observation: [{timestamp}] - {mode_a} -> {mode_b}
+    - **Task Context**: {task_context}
+    - **Observation**: {observation}
+    - **Recommendation**: {recommendation}
+    ---
+
+devops:
+  Deployment History Log: |
+    ### Deployment: [{timestamp}]
+    - **Env**: {env} / **Comps**: {comps} / **Version**: {version} / **Trigger**: {trigger} / **Status**: {status} / **Duration**: {duration} / **Rollback**: {rollback_version} / **Notes**: {notes}
+    ---
+  Infrastructure Configuration Overview: |
+    ### Infra Config: {env} - {component} - [{timestamp}]
+    - **Provider**: {provider} / **Region**: {region} / **Version**: {version} / **Config**: {config} / **ManagedBy**: {managed_by} / **IaC Link**: `{iac_link}`
+    ---
+  Environment Registry: |
+    ### Environment: {name} - [{timestamp}]
+    - **Purpose**: {purpose} / **URL**: {url} / **Access**: {access} / **Services**: {services} / **Data**: {data} / **Status**: {status} / **Owner**: {owner}
+    ---
+  CI/CD Pipeline Documentation: |
+    ### Pipeline: {pipeline_name} - [{timestamp}]
+    - **Tool**: {tool} / **Trigger**: {trigger} / **Repo**: {repo} / **Workflow**: `{workflow_path}` / **Stages**: {stages} / **Vars**: {vars}
+    ---
+  Secrets Management Strategy: |
+    #### Secrets Management Strategy (Updated: [{timestamp}])
+    - **Tool**: {tool}
+    - **Access Control**: {access_control}
+    - **Rotation Policy**: {rotation_policy}
+    - **Injection Method**: {injection_method}
+    - **Auditing**: {auditing}
+    ---
+
+debug:
+  Issue History: |
+    ### Issue: {issue_id} - {short_description} - [Status: {status}] - [{timestamp}]
+    - **Reported**: {reported} / **Severity**: {severity} / **Symptoms**: {symptoms}
+    - **Investigation**: {investigation}
+    - **Root Cause**: {root_cause} / **Fix Applied**: {fix_applied} / **Verification**: {verification}
+    - **Related Issues**: {related_issues}
+    ---
+  Recurring Bug Patterns: |
+    ### Pattern: {pattern_name} - [{timestamp}]
+    - **Identification**: {identification} / **Causes**: {causes} / **Components**: {components} / **Resolution**: {resolution} / **Related**: {related} / **Last Seen**: {last_seen}
+    ---
+  Environment-Specific Notes: |
+    ### Environment Note: {env_name} - [{timestamp}]
+    - **Issue/Behavior**: {issue_behavior} / **Config**: {config} / **Workaround**: {workaround}
+    ---
+  Performance Observations: |
+    ### Perf Observation: {issue_id} - [{timestamp}]
+    - **Observation**: {observation} / **Metric**: {metric} / **Context**: {context} / **Cause**: {cause}
+    ---
+  Debugging Tools & Techniques: |
+    ### Tool/Technique: {tool_technique_name} - [{timestamp}]
+    - **Context**: {context} / **Usage**: {usage} / **Effectiveness**: {effectiveness}
+    ---
+
+# --- System Self-Modification Modes ---
+system-modifier: # Renamed from plan-implementer
+  System Modification Log: |
+    ### [{timestamp}] Plan: {plan_reference} - Step: {step_description}
+    - Target: `{target_file}`
+    - Status: {status}
+    - Details: {details}
+    ---
+  Execution Issues Log: |
+    ### [{timestamp}] Issue during Plan: {plan_reference} - Step: {step_description}
+    - Target: `{target_file}`
+    - Type: {issue_type}
+    - Message: {error_message}
+    - Resolution Status: {resolution_status}
+    ---
+
+system-strategist:
+  Improvement Analysis Log: |
+    ### [{timestamp}] Analysis Summary
+    - Sources: {data_sources}
+    - Issues Identified: {identified_issues}
+    - Metrics Impacted: {metrics_impacted}
+    - Summary: {analysis_summary}
+    ---
+  External Knowledge Log (MCP): |
+    ### [{timestamp}] External Knowledge Query
+    - Purpose: {query_purpose}
+    - Server: {server_id}
+    - Query: {query_text}
+    - Response Summary: {response_summary}
+    - Key Insight/Impact: {key_insight}
+    - References: {source_references}
+    ---
+  Strategic Goals: |
+    ### [{timestamp}] Strategic Goal (Priority: {priority})
+    - Goal: {goal_description}
+    - Measurable Outcome: {measurable_outcome}
+    - Related Analysis: {related_analysis}
+    ---
+  Generated Plans Log: |
+    ### [{timestamp}] Plan Generated (Status: {status})
+    - Summary: {plan_summary}
+    - Related Goal: {related_goal}
+    - Targets: {target_files}
+    - Modifier Outcome: {modifier_outcome}
+    ---
