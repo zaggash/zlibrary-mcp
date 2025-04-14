@@ -1,5 +1,16 @@
 # System Integrator Specific Memory
 <!-- Entries below should be added reverse chronologically (newest first) -->
+## Integration Issues Log
+<!-- Append issues using the format below -->
+### Issue: INT-001 - Client ZodError on Tool Call - Status: Open - [2025-04-14 13:16:12]
+- **Identified**: [2025-04-14 13:10:48]
+- **Components**: MCP Client (RooCode), zlibrary-mcp Server
+- **Symptoms**: Client throws `ZodError: Expected array, received undefined` at path `content` when parsing `CallToolResponse` from `zlibrary-mcp`, even for tools returning objects (e.g., `get_download_limits`).
+- **Root Cause**: Suspected client-side parsing logic incorrectly expects the `content` field in the response to *always* be an array, failing validation when it's an object.
+- **Resolution**: Paused integration task. Needs investigation of client-side parsing code or MCP specification regarding `CallToolResponse` structure.
+- **Resolved Date**: N/A
+
+
 ### Integration: Global Execution Fix - [2025-04-14 10:20:48]
 - **Components Integrated**: `lib/venv-manager.js`, `index.js`, `lib/zlibrary-api.js`.
 - **Verification**: Manual run (`rm -rf ~/.cache/zlibrary-mcp && node index.js`) confirmed successful venv creation, dependency installation (`zlibrary`), and server startup via Stdio transport. Core logic (`ensureVenvReady`, `getManagedPythonPath`) functions correctly.

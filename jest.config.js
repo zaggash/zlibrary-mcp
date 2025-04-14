@@ -18,7 +18,7 @@ module.exports = {
     '/node_modules/',
     '/dist/'
   ],
-  // transformIgnorePatterns removed as env-paths is now mocked
+  // transformIgnorePatterns removed as env-paths is mocked in venv-manager.test.js
   // Skip integration tests by default
   testTimeout: 10000,
   // Automatically clear mock calls and instances between every test

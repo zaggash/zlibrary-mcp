@@ -8,18 +8,20 @@ const zodToJsonSchema = require('zod-to-json-schema').default; // Import convert
 const { ensureVenvReady } = require('./lib/venv-manager'); // New venv manager
 const fs = require('fs'); // For reading package.json
 const path = require('path'); // For reading package.json
-const { 
-  searchBooks, 
-  getBookById, 
+const {
+  searchBooks,
+  getBookById,
   getDownloadInfo,
   fullTextSearch,
   getDownloadHistory,
   getDownloadLimits,
   getRecentBooks,
-  downloadBookToFile
+  downloadBookToFile,
+  processDocumentForRag // Added for RAG processing
 } = require('./lib/zlibrary-api');
 
 // Tool handler implementations - exported for testing
+// Corrected handlers object
 const handlers = {
   searchBooks: async ({ query, exact = false, fromYear, toYear, language = [], extensions = [], count = 10 }) => {
     try {
@@ -32,93 +34,68 @@ const handlers = {
         extensions,
         count
       );
-      
-      return {
-        results: results,
-        total: results.length,
-        query: query
-      };
-    } catch (error) {
-      return { error: error.message || 'Failed to search books' };
-    }
+      return { content: results, total: results.length, query: query };
+    } catch (error) { return { error: error.message || 'Failed to search books' }; }
   },
 
   getBookById: async ({ id }) => {
-    try {
-      return await getBookById(id);
-    } catch (error) {
-      return { error: error.message || 'Failed to get book information' };
-    }
+    try { return await getBookById(id); }
+    catch (error) { return { error: error.message || 'Failed to get book information' }; }
   },
 
   getDownloadInfo: async ({ id, format }) => {
-    try {
-      return await getDownloadInfo(id, format);
-    } catch (error) {
-      return { error: error.message || 'Failed to get download information' };
-    }
+    try { return await getDownloadInfo(id, format); }
+    catch (error) { return { error: error.message || 'Failed to get download information' }; }
   },
 
   fullTextSearch: async ({ query, exact = false, phrase = true, words = false, language = [], extensions = [], count = 10 }) => {
     try {
-      const results = await fullTextSearch(
-        query,
-        exact,
-        phrase,
-        words,
-        language,
-        extensions,
-        count
-      );
-      
-      return {
-        results: results,
-        total: results.length,
-        query: query
-      };
-    } catch (error) {
-      return { error: error.message || 'Failed to perform full text search' };
-    }
+      const results = await fullTextSearch( query, exact, phrase, words, language, extensions, count );
+      return { content: results, total: results.length, query: query };
+    } catch (error) { return { error: error.message || 'Failed to perform full text search' }; }
   },
 
   getDownloadHistory: async ({ count = 10 }) => {
     try {
-      return await getDownloadHistory(count);
-    } catch (error) {
-      return { error: error.message || 'Failed to get download history' };
+        const results = await getDownloadHistory(count);
+        return { content: results, total: results.length };
     }
+    catch (error) { return { error: error.message || 'Failed to get download history' }; }
   },
 
   getDownloadLimits: async () => {
-    try {
-      return await getDownloadLimits();
-    } catch (error) {
-      return { error: error.message || 'Failed to get download limits' };
-    }
+    try { return await getDownloadLimits(); }
+    catch (error) { return { error: error.message || 'Failed to get download limits' }; }
   },
 
   getRecentBooks: async ({ count = 10, format }) => {
     try {
       const results = await getRecentBooks(count, format);
-      return {
-        books: results,
-        total: results.length
-      };
-    } catch (error) {
-      return { error: error.message || 'Failed to get recent books' };
-    }
+      return { content: results, total: results.length };
+    } catch (error) { return { error: error.message || 'Failed to get recent books' }; }
   },
 
-  downloadBookToFile: async ({ id, format, outputDir = './downloads' }) => {
+  downloadBookToFile: async ({ id, format, outputDir = './downloads', process_for_rag = false }) => { // Updated signature
     try {
-      return await downloadBookToFile(id, format, outputDir);
+      // Pass process_for_rag flag
+      return await downloadBookToFile(id, format, outputDir, process_for_rag);
     } catch (error) {
       return { error: error.message || 'Failed to download book' };
     }
+  }, // Added comma
+
+  // New handler
+  processDocumentForRag: async ({ file_path, output_format = 'text' }) => {
+    try {
+      return await processDocumentForRag(file_path, output_format);
+    } catch (error) {
+      return { error: error.message || 'Failed to process document for RAG' };
+    }
   }
-};
+}; // End handlers object
 
 // Define Zod schemas for tool parameters
+// Corrected schema definitions
 const SearchBooksParamsSchema = z.object({
   query: z.string().describe('Search query'),
   exact: z.boolean().optional().default(false).describe('Whether to perform an exact match search'),
@@ -159,13 +136,22 @@ const GetRecentBooksParamsSchema = z.object({
   format: z.string().optional().describe('Filter by file format (e.g., "pdf", "epub")'),
 });
 
+// Updated schema
 const DownloadBookToFileParamsSchema = z.object({
   id: z.string().describe('Z-Library book ID'),
   format: z.string().optional().describe('File format (e.g., "pdf", "epub")'),
   outputDir: z.string().optional().default('./downloads').describe('Directory to save the file to (default: "./downloads")'),
+  process_for_rag: z.boolean().optional().describe('Whether to process the document content for RAG after download'),
+});
+
+// New schema
+const ProcessDocumentForRagParamsSchema = z.object({
+  file_path: z.string().describe('Path to the downloaded file to process'),
+  output_format: z.string().optional().default('text').describe('Desired output format (e.g., "text", "markdown")') // Future use
 });
 
 // Tool Registry
+// Corrected toolRegistry object
 const toolRegistry = {
   search_books: {
     description: 'Search for books in Z-Library',
@@ -202,12 +188,19 @@ const toolRegistry = {
     schema: GetRecentBooksParamsSchema,
     handler: handlers.getRecentBooks,
   },
+  // Updated entry
   download_book_to_file: {
-    description: 'Download a book directly to a local file',
-    schema: DownloadBookToFileParamsSchema,
+    description: 'Download a book directly to a local file and optionally process it for RAG',
+    schema: DownloadBookToFileParamsSchema, // Uses updated schema
     handler: handlers.downloadBookToFile,
+  }, // Added comma
+  // New entry
+  process_document_for_rag: {
+    description: 'Process a downloaded document (EPUB, TXT) to extract text content for RAG',
+    schema: ProcessDocumentForRagParamsSchema, // Uses new schema
+    handler: handlers.processDocumentForRag,
   },
-};
+}; // End toolRegistry object
 
 // Check for Python dependencies before starting
 // Helper function to get version from package.json
@@ -241,7 +234,7 @@ async function start(opts = {}) {
     });
 
     // Enable tools capability
-    server.registerCapabilities({ tools: true });
+    server.registerCapabilities({ tools: {} });
 
 // Implement tools/list handler - access schema inside start function
 server.setRequestHandler(mcpTypes.ListToolsRequestSchema, async (request) => {

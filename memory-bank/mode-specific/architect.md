@@ -102,6 +102,16 @@ graph TD
 <!-- Append new interface definitions using the format below -->
 
 ## Component Specifications
+### Component Specification: RAG Document Processor (Python) - [2025-04-14 13:50:00] (Updated)
+- **Responsibility**: Handles book download via `zlibrary` lib. Detects file type (EPUB, TXT, **PDF**), extracts text content using appropriate libraries, performs basic cleaning/formatting, returns plain text. Can be called during download (if `process_for_rag` flag is set) or separately. Handles specific errors like encrypted PDFs or image-only PDFs.
+- **Location**: `lib/python-bridge.py` (updated `process_document` function, new `_process_pdf` helper function)
+- **Dependencies**: Python 3, `zlibrary`, `ebooklib` (for EPUB), `beautifulsoup4`, `lxml`, **`PyMuPDF`** (for PDF). Called by Node.js bridge.
+- **Interfaces Exposed**: Internal functions callable via the Node.js-Python bridge mechanism.
+    - Download function: Takes book ID, path, process flag. Returns path and optionally processed text.
+    - Process function: Takes file path. Returns processed text or specific error message (e.g., encrypted, no text layer).
+- **Internal Structure**: Download function calls `zlibrary`. If processing requested, calls internal process function. Process function uses conditional logic based on file type (`.epub`, `.txt`, `.pdf`) for extraction. `_process_pdf` uses `fitz` to open PDF, iterates through pages, extracts text, and includes checks for encryption and lack of text content.
+
+
 ### Component Specification: RAG Document Processor (Python) - [2025-04-14 12:08:50] (Updated)
 - **Responsibility**: Handles book download via `zlibrary` lib. Detects file type (EPUB, TXT), extracts text content using appropriate libraries, performs basic cleaning/formatting, returns plain text. Can be called during download (if `process_for_rag` flag is set) or separately.
 - **Location**: `lib/python-bridge.py` (updated download function, separate processing function)

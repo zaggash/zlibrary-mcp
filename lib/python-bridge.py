@@ -5,6 +5,14 @@ import traceback
 import asyncio
 from zlibrary import AsyncZlib, Extension, Language
 
+import os
+from pathlib import Path
+import ebooklib
+from ebooklib import epub
+from bs4 import BeautifulSoup
+
+import fitz  # PyMuPDF
+import logging
 # Global zlibrary client
 zlib_client = None
 
@@ -12,7 +20,6 @@ async def initialize_client():
     global zlib_client
     
     # Load credentials from environment variables or config file
-    import os
     email = os.environ.get('ZLIBRARY_EMAIL')
     password = os.environ.get('ZLIBRARY_PASSWORD')
     
@@ -24,28 +31,25 @@ async def initialize_client():
     await zlib_client.login(email, password)
     return zlib_client
 
+# Helper function to parse string lists into ZLibrary enums
+def _parse_enums(items, enum_class):
+    parsed_items = []
+    if items:
+        for item in items:
+            try:
+                parsed_items.append(getattr(enum_class, item.upper()))
+            except AttributeError:
+                # If not found in enum, pass the string directly (library might handle it)
+                parsed_items.append(item)
+    return parsed_items
+
 async def search(query, exact=False, from_year=None, to_year=None, languages=None, extensions=None, count=10):
     """Search for books based on title, author, etc."""
     if not zlib_client:
         await initialize_client()
         
-    # Convert language strings to Language enum values
-    langs = []
-    if languages:
-        for lang in languages:
-            try:
-                langs.append(getattr(Language, lang.upper()))
-            except AttributeError:
-                langs.append(lang)
-    
-    # Convert extension strings to Extension enum values
-    exts = []
-    if extensions:
-        for ext in extensions:
-            try:
-                exts.append(getattr(Extension, ext.upper()))
-            except AttributeError:
-                exts.append(ext)
+    langs = _parse_enums(languages, Language)
+    exts = _parse_enums(extensions, Extension)
     
     # Execute the search
     paginator = await zlib_client.search(
@@ -94,23 +98,8 @@ async def full_text_search(query, exact=False, phrase=True, words=False, languag
     if not zlib_client:
         await initialize_client()
         
-    # Convert language strings to Language enum values
-    langs = []
-    if languages:
-        for lang in languages:
-            try:
-                langs.append(getattr(Language, lang.upper()))
-            except AttributeError:
-                langs.append(lang)
-    
-    # Convert extension strings to Extension enum values
-    exts = []
-    if extensions:
-        for ext in extensions:
-            try:
-                exts.append(getattr(Extension, ext.upper()))
-            except AttributeError:
-                exts.append(ext)
+    langs = _parse_enums(languages, Language)
+    exts = _parse_enums(extensions, Extension)
     
     # Execute the search
     paginator = await zlib_client.full_text_search(
@@ -147,17 +136,164 @@ async def get_download_limits():
     limits = await zlib_client.profile.get_limits()
     return limits
 
-async def get_recent_books(count=10, format=None):
-    """Get recent books via search"""
-    if not zlib_client:
-        await initialize_client()
-    
-    # We'll do a general search and sort by newest
-    paginator = await zlib_client.search(q="", count=count)
-    
-    # Get the first page of results
-    results = await paginator.next()
-    return results
+# --- RAG Document Processing Functions ---
+
+def _process_epub(file_path):
+    """Extracts text content from an EPUB file."""
+    try:
+        book = epub.read_epub(file_path)
+        content = []
+        for item in book.get_items_of_type(ebooklib.ITEM_DOCUMENT):
+            soup = BeautifulSoup(item.get_content(), 'html.parser')
+            # Extract text, trying to preserve paragraphs
+            text = '\n\n'.join(p.get_text(strip=True) for p in soup.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']))
+            if not text: # Fallback if no paragraph tags found
+                text = soup.get_text(strip=True)
+            content.append(text)
+        return "\n\n".join(content)
+    except Exception as e:
+        raise Exception(f"Error processing EPUB {file_path}: {e}")
+
+def _process_txt(file_path):
+    """Reads content from a TXT file."""
+    try:
+        # Using errors='ignore' as a simple strategy for RAG where perfect fidelity isn't critical.
+        # Consider 'replace' or more robust encoding detection if issues arise.
+        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+            return f.read()
+    except Exception as e:
+        raise Exception(f"Error processing TXT {file_path}: {e}")
+
+
+def _process_pdf(file_path: str) -> str:
+    """
+    Extracts text content from a PDF file using PyMuPDF (fitz).
+
+    Args:
+        file_path: The absolute path to the PDF file.
+
+    Returns:
+        The extracted plain text content.
+
+    Raises:
+        FileNotFoundError: If the file_path does not exist.
+        ValueError: If the PDF is encrypted or contains no extractable text.
+        RuntimeError: If there's an error opening or processing the PDF.
+        ImportError: If fitz (PyMuPDF) is not installed.
+    """
+    # Assuming logging is configured elsewhere or basicConfig is used
+    # logging.basicConfig(level=logging.INFO) # Uncomment if basic logging needed
+    logging.info(f"Processing PDF: {file_path}")
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"File not found: {file_path}")
+
+    doc = None  # Initialize doc to None for finally block
+    try:
+        # Attempt to open the PDF
+        doc = fitz.open(file_path)
+
+        # Check for encryption
+        if doc.is_encrypted:
+            logging.warning(f"PDF is encrypted: {file_path}")
+            raise ValueError("PDF is encrypted")
+
+        all_text = []
+        # Iterate through pages
+        for page_num in range(len(doc)):
+            try:
+                page = doc.load_page(page_num)
+                text = page.get_text("text") # Extract plain text
+                if text:
+                    all_text.append(text.strip())
+            except Exception as page_error:
+                logging.warning(f"Could not process page {page_num + 1} in {file_path}: {page_error}")
+                # Continue processing other pages
+
+        # Combine extracted text
+        full_text = "\n\n".join(all_text).strip()
+
+        # Check if any text was extracted
+        if not full_text:
+            logging.warning(f"No extractable text found in PDF (possibly image-based): {file_path}")
+            raise ValueError("PDF contains no extractable text layer (possibly image-based)")
+
+        logging.info(f"Finished PDF: {file_path}. Extracted length: {len(full_text)}")
+        return full_text
+
+    except fitz.fitz.FitzError as fitz_error: # Catch specific fitz errors
+        logging.error(f"PyMuPDF error processing {file_path}: {fitz_error}")
+        raise RuntimeError(f"Error opening or processing PDF: {file_path} - {fitz_error}")
+    except Exception as e:
+        # Catch other potential errors during opening or processing
+        logging.error(f"Unexpected error processing PDF {file_path}: {e}")
+        # Re-raise specific errors if needed
+        if isinstance(e, (ValueError, FileNotFoundError)):
+             raise e
+        raise RuntimeError(f"Error opening or processing PDF: {file_path} - {e}")
+    finally:
+        # Ensure the document is closed
+        if doc:
+            try:
+                doc.close()
+            except Exception as close_error:
+                logging.error(f"Error closing PDF document {file_path}: {close_error}")
+
+# Define supported formats (as per spec example)
+SUPPORTED_FORMATS = ['.epub', '.txt', '.pdf']
+
+async def process_document(file_path_str: str, output_format='text') -> dict:
+    """Processes a document file (EPUB, TXT, PDF) to extract text content."""
+    try:
+        # Use os.path as per spec pseudocode for consistency
+        if not os.path.exists(file_path_str):
+            raise FileNotFoundError(f"File not found: {file_path_str}")
+
+        _, ext = os.path.splitext(file_path_str)
+        ext = ext.lower()
+        processed_text = None
+
+        if ext == '.epub':
+            processed_text = _process_epub(file_path_str)
+        elif ext == '.txt':
+            processed_text = _process_txt(file_path_str)
+        elif ext == '.pdf':
+             # Assuming fitz import check happens in _process_pdf
+            processed_text = _process_pdf(file_path_str)
+        else:
+            # Use the updated SUPPORTED_FORMATS list
+            raise ValueError(f"Unsupported file format: {ext}. Supported: {SUPPORTED_FORMATS}")
+
+        # Currently only supports 'text' output
+        if output_format != 'text':
+            # Log a warning or handle differently if needed in the future
+            # Currently, only text output is supported.
+            pass # No operation needed if format is 'text' or ignored
+
+        if processed_text is None:
+             # This case might occur if a processing function returns None instead of raising error
+             logging.error(f"Processing function returned None for {file_path_str}")
+             raise RuntimeError(f"Processing function returned None for {file_path_str}")
+
+        return {"processed_text": processed_text}
+
+    except ImportError as imp_err:
+         logging.error(f"Missing dependency for processing {ext} file {file_path_str}: {imp_err}")
+         # Return error in the expected format
+         return {"error": f"Missing required library to process {ext} files. Please check installation."}
+    except (FileNotFoundError, ValueError) as specific_err: # Catch specific errors first
+        logging.error(f"Error processing document {file_path_str}: {specific_err}")
+        return {"error": str(specific_err)}
+    except Exception as e:
+        # Log full traceback for unexpected errors
+        logging.exception(f"Failed to process document {file_path_str}")
+        # Wrap unexpected errors and return in expected format
+        # Check if it's a re-raised error from _process_pdf etc.
+        if isinstance(e, RuntimeError) and ("Error opening or processing PDF" in str(e) or "Processing function returned None" in str(e)):
+             return {"error": str(e)} # Propagate specific processing errors directly
+        return {"error": f"An unexpected error occurred during document processing: {e}"}
+
+# --- Main Execution Logic ---
+
 
 def main():
     if len(sys.argv) < 3:
@@ -182,7 +318,7 @@ def main():
             'full_text_search': full_text_search,
             'get_download_history': get_download_history,
             'get_download_limits': get_download_limits,
-            'get_recent_books': get_recent_books
+            'process_document': process_document # Added RAG processing function
         }
         
         if function_name not in function_map:

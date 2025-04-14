@@ -1,5 +1,17 @@
 # Architect Feedback
 <!-- Entries below should be added reverse chronologically (newest first) -->
+[2025-04-14 13:55:47] - User Feedback on PDF Arch Doc Completion:
+- **Issue**: User denied completion, requesting the architecture details also be included directly in the result message, in addition to the created file.
+- **Context**: Previous completion attempt only stated the file was created.
+- **Action**: Acknowledge feedback. Re-attempt completion, including the full architecture markdown content in the result message.
+
+
+[2025-04-14 13:54:00] - User Feedback on PDF Arch Completion:
+- **Issue**: User denied completion, requesting the architecture be written to a file in `docs/architecture/`.
+- **Context**: Previous completion attempt presented the architecture directly in the chat.
+- **Action**: Acknowledge feedback. Create `docs/architecture/pdf-processing-integration.md` with the detailed architecture design.
+
+
 [2025-04-14 12:10:05] - User Feedback on Refined RAG Arch Completion:
 - **Issue**: User denied completion, requesting the entire architectural plan be included in the result message.
 - **Context**: Previous completion attempt summarized the work and pointed to the documentation file.
