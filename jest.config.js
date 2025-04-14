@@ -18,6 +18,7 @@ module.exports = {
     '/node_modules/',
     '/dist/'
   ],
+  // transformIgnorePatterns removed as env-paths is now mocked
   // Skip integration tests by default
   testTimeout: 10000,
   // Automatically clear mock calls and instances between every test
@@ -27,5 +28,7 @@ module.exports = {
   // Automatically mock the MCP server package
   moduleNameMapper: {
     '^@modelcontextprotocol/server$': '<rootDir>/__mocks__/@modelcontextprotocol/server.js'
-  }
+  },
+  // Force exit after tests using global teardown
+  globalTeardown: '<rootDir>/jest.teardown.js'
 };
