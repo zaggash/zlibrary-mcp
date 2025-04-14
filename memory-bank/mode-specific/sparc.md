@@ -1,5 +1,13 @@
 # SPARC Orchestrator Specific Memory
 <!-- Entries below should be added reverse chronologically (newest first) -->
+### [2025-04-14 12:10:40] Task: Design Architecture for RAG Document Pipeline
+- Assigned to: architect
+- Description: Design architecture for server-side RAG pipeline components.
+- Expected deliverable: Architectural overview, tool definitions, justifications.
+- Status: completed
+- Completion time: 2025-04-14 12:10:40
+- Outcome: Proposed dual workflow (combined/separate download & process). Python bridge handles extraction (EPUB/TXT initially). Updated `download_book_to_file` tool and defined new `process_document_for_rag` tool. Architecture documented in `docs/architecture/rag-pipeline.md`.
+- Link to Progress Entry: N/A
 ### [2025-04-14 11:40:09] Milestone: Task 1 Complete
 - **Task:** Debug Global MCP Server Execution
 - **Status:** Completed. Diagnosis, architecture, specification, implementation (TDD Red/Green/Refactor), integration, and test updates finished. Server now uses a managed Python venv and correct SDK imports, resolving global execution issues.

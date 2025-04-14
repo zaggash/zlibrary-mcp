@@ -3,14 +3,17 @@
 
 # System Patterns
 <!-- Entries below should be added reverse chronologically (newest first) -->
-### Pattern: RAG Document Processing Pipeline - [2025-04-14 11:41:55]
+### Pattern: RAG Document Processing Pipeline - [2025-04-14 12:07:50] (Updated)
 - **Context**: Enabling AI agents to use documents from Z-Library for Retrieval-Augmented Generation (RAG).
-- **Problem**: Agents need a way to extract usable text content from downloaded book files (EPUB, TXT initially).
-- **Solution**: Extend the `zlibrary-mcp` server. Agents use existing tools to download a file, then call a new MCP tool (`process_document_for_rag`). This tool triggers a Python function (via the existing bridge) that detects the file type, uses appropriate libraries (e.g., `ebooklib`) to extract text, performs basic cleaning, and returns the plain text content to the agent.
-- **Components**: New MCP tool (`process_document_for_rag`), modifications to `lib/zlibrary-api.js` (Node.js), new processing function in `lib/python-bridge.py` (Python), new Python dependencies (e.g., `ebooklib`).
-- **Data Flow**: Agent -> `download_book_to_file` -> Server (Node -> Python -> Disk) -> Agent -> `process_document_for_rag` -> Server (Node -> Python -> Node) -> Agent (receives text).
-- **Extensibility**: Python bridge allows easy addition of new format handlers (e.g., PDF) by adding libraries and conditional logic in `python-bridge.py`.
-- **Related**: Decision-RAGProcessorTech-01, MCPTool-ProcessDocRAG-01
+- **Problem**: Agents need efficient ways to extract usable text content from downloaded book files (EPUB, TXT initially).
+- **Solution**: Extend the `zlibrary-mcp` server with two workflows:
+    1.  **Combined:** Add an optional `process_for_rag: boolean` flag to the existing `download_book_to_file` tool. If true, the tool downloads the file, immediately processes it via the Python bridge (EPUB/TXT), and returns both the `file_path` and `processed_text`.
+    2.  **Separate:** Keep the dedicated `process_document_for_rag` tool to process already downloaded files. This tool takes a `file_path` and returns `processed_text`.
+- **Components**: Updated `download_book_to_file` tool, new `process_document_for_rag` tool, modifications to `lib/zlibrary-api.js` (Node.js), updated download function and new processing function in `lib/python-bridge.py` (Python), new Python dependencies (e.g., `ebooklib`).
+- **Data Flow (Combined)**: Agent -> `download_book_to_file(process_for_rag=true)` -> Server (Node -> Python: Download -> Process -> Node) -> Agent (receives path & text).
+- **Data Flow (Separate)**: Agent -> `download_book_to_file` -> Server (Node -> Python -> Disk) -> Agent -> `process_document_for_rag` -> Server (Node -> Python -> Node) -> Agent (receives text).
+- **Extensibility**: Python bridge allows easy addition of new format handlers (e.g., PDF).
+- **Related**: Decision-RAGProcessorTech-01, Decision-CombineDownloadProcess-01, MCPTool-ProcessDocRAG-01, MCPTool-DownloadBook-01 (Updated)
 
 
 ### Pattern: Managed Python Virtual Environment for NPM Package - [2025-04-14 03:29:08]
@@ -23,6 +26,12 @@
 
 # Decision Log
 <!-- Entries below should be added reverse chronologically (newest first) -->
+### Decision-CombineDownloadProcess-01 - [2025-04-14 12:07:50]
+- **Decision**: Offer both a combined download-and-process workflow and separate download/process steps for RAG document preparation.
+- **Rationale**: Provides flexibility. The combined workflow (via an option in `download_book_to_file`) is efficient for immediate use. The separate `process_document_for_rag` tool allows processing of already downloaded or existing files. Addresses user feedback for efficiency while retaining modularity.
+- **Implementation**: Add `process_for_rag: boolean` parameter to `download_book_to_file`. Modify its return value to optionally include `processed_text`. Keep `process_document_for_rag` as a separate tool. Update Python bridge to handle the optional processing during download.
+- **Related**: Pattern-RAGPipeline-01 (Updated), MCPTool-ProcessDocRAG-01, MCPTool-DownloadBook-01 (Updated)
+
 ### Decision-RAGProcessorTech-01 - [2025-04-14 11:41:55]
 - **Decision**: Implement the RAG document content extraction/processing logic within the existing Python bridge (`lib/python-bridge.py`).
 - **Rationale**: Leverages the established Python virtual environment and bridge mechanism. Python offers superior library support for diverse document formats (EPUB, TXT, future PDF) compared to Node.js. Consolidates Python-related logic.
