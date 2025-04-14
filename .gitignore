@@ -25,5 +25,5 @@ var/
 venv/
 .venv/
 requirements.txt
-# .roo/
-# .roomodes
+.roo/
+.roomodes
