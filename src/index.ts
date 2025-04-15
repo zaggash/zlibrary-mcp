@@ -1,101 +1,43 @@
 #!/usr/bin/env node
 
-// Use the main package export for the SDK
-// Import the Server class (capital S) from the correct CJS path
-// Moved SDK requires inside start function
-const z = require('zod'); // Import Zod
-const zodToJsonSchema = require('zod-to-json-schema').default; // Import converter
-const { ensureVenvReady } = require('./lib/venv-manager'); // New venv manager
-const fs = require('fs'); // For reading package.json
-const path = require('path'); // For reading package.json
-const {
-  searchBooks,
-  getBookById,
-  getDownloadInfo,
-  fullTextSearch,
-  getDownloadHistory,
-  getDownloadLimits,
-  getRecentBooks,
-  downloadBookToFile,
-  processDocumentForRag // Added for RAG processing
-} = require('./lib/zlibrary-api');
+import { z, ZodObject, ZodRawShape } from 'zod';
+import { zodToJsonSchema } from 'zod-to-json-schema'; // Reverted back to named import (correct for types)
+import { ensureVenvReady } from './lib/venv-manager.js'; // Use .js extension
+import * as fs from 'fs';
+import * as path from 'path';
+import { fileURLToPath } from 'url';
 
-// Tool handler implementations - exported for testing
-// Corrected handlers object
-const handlers = {
-  searchBooks: async ({ query, exact = false, fromYear, toYear, language = [], extensions = [], count = 10 }) => {
-    try {
-      const results = await searchBooks(
-        query,
-        exact,
-        fromYear,
-        toYear,
-        language,
-        extensions,
-        count
-      );
-      return { content: results, total: results.length, query: query };
-    } catch (error) { return { error: error.message || 'Failed to search books' }; }
-  },
+// Import SDK components using ESM syntax
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+// Import types using 'import type' for clarity
+import type {
+    CallToolRequest,
+    ListToolsRequest,
+    ListResourcesRequest,
+    ListPromptsRequest,
+    // ServerInfo, // Likely not exported or needed
+    // ToolDefinition, // Define locally based on usage
+    ServerResult // This type might be complex or different in 1.8.0, use 'any' for now if needed
+    // AnyZodObject // This comes from zod, not the SDK
+} from '@modelcontextprotocol/sdk/types.js';
+// Import schemas directly if they are exported as values
+import {
+    ListToolsRequestSchema,
+    CallToolRequestSchema,
+    ListResourcesRequestSchema,
+    ListPromptsRequestSchema
+} from '@modelcontextprotocol/sdk/types.js';
 
-  getBookById: async ({ id }) => {
-    try { return await getBookById(id); }
-    catch (error) { return { error: error.message || 'Failed to get book information' }; }
-  },
 
-  getDownloadInfo: async ({ id, format }) => {
-    try { return await getDownloadInfo(id, format); }
-    catch (error) { return { error: error.message || 'Failed to get download information' }; }
-  },
+// Import API handlers
+import * as zlibraryApi from './lib/zlibrary-api.js'; // Use .js extension
 
-  fullTextSearch: async ({ query, exact = false, phrase = true, words = false, language = [], extensions = [], count = 10 }) => {
-    try {
-      const results = await fullTextSearch( query, exact, phrase, words, language, extensions, count );
-      return { content: results, total: results.length, query: query };
-    } catch (error) { return { error: error.message || 'Failed to perform full text search' }; }
-  },
-
-  getDownloadHistory: async ({ count = 10 }) => {
-    try {
-        const results = await getDownloadHistory(count);
-        return { content: results, total: results.length };
-    }
-    catch (error) { return { error: error.message || 'Failed to get download history' }; }
-  },
-
-  getDownloadLimits: async () => {
-    try { return await getDownloadLimits(); }
-    catch (error) { return { error: error.message || 'Failed to get download limits' }; }
-  },
-
-  getRecentBooks: async ({ count = 10, format }) => {
-    try {
-      const results = await getRecentBooks(count, format);
-      return { content: results, total: results.length };
-    } catch (error) { return { error: error.message || 'Failed to get recent books' }; }
-  },
-
-  downloadBookToFile: async ({ id, format, outputDir = './downloads', process_for_rag = false }) => { // Updated signature
-    try {
-      // Pass process_for_rag flag
-      return await downloadBookToFile(id, format, outputDir, process_for_rag);
-    } catch (error) {
-      return { error: error.message || 'Failed to download book' };
-    }
-  }, // Added comma
-
-  // New handler
-  processDocumentForRag: async ({ file_path, output_format = 'text' }) => {
-    try {
-      return await processDocumentForRag(file_path, output_format);
-    } catch (error) {
-      return { error: error.message || 'Failed to process document for RAG' };
-    }
-  }
-}; // End handlers object
+// Recreate __dirname for ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Define Zod schemas for tool parameters
-// Corrected schema definitions
 const SearchBooksParamsSchema = z.object({
   query: z.string().describe('Search query'),
   exact: z.boolean().optional().default(false).describe('Whether to perform an exact match search'),
@@ -136,7 +78,6 @@ const GetRecentBooksParamsSchema = z.object({
   format: z.string().optional().describe('Filter by file format (e.g., "pdf", "epub")'),
 });
 
-// Updated schema
 const DownloadBookToFileParamsSchema = z.object({
   id: z.string().describe('Z-Library book ID'),
   format: z.string().optional().describe('File format (e.g., "pdf", "epub")'),
@@ -144,15 +85,100 @@ const DownloadBookToFileParamsSchema = z.object({
   process_for_rag: z.boolean().optional().describe('Whether to process the document content for RAG after download'),
 });
 
-// New schema
 const ProcessDocumentForRagParamsSchema = z.object({
   file_path: z.string().describe('Path to the downloaded file to process'),
   output_format: z.string().optional().default('text').describe('Desired output format (e.g., "text", "markdown")') // Future use
 });
 
+// Define a type for the handler map
+type HandlerMap = {
+    [key: string]: (args: any) => Promise<any>;
+};
+
+// Tool handler implementations
+// Add explicit types for arguments where possible, or use 'any'
+const handlers: HandlerMap = {
+  searchBooks: async (args: z.infer<typeof SearchBooksParamsSchema>) => {
+    try {
+      const results = await zlibraryApi.searchBooks(args);
+      // Assuming searchBooks returns the array directly
+      return { content: results, total: results.length, query: args.query };
+    } catch (error: any) { return { error: { message: error.message || 'Failed to search books' } }; }
+  },
+
+  getBookById: async (args: z.infer<typeof GetBookByIdParamsSchema>) => {
+    try { return await zlibraryApi.getBookById(args); }
+    catch (error: any) { return { error: { message: error.message || 'Failed to get book information' } }; }
+  },
+
+  getDownloadInfo: async (args: z.infer<typeof GetDownloadInfoParamsSchema>) => {
+    try { return await zlibraryApi.getDownloadInfo(args); }
+    catch (error: any) { return { error: { message: error.message || 'Failed to get download information' } }; }
+  },
+
+  fullTextSearch: async (args: z.infer<typeof FullTextSearchParamsSchema>) => {
+    try {
+      const results = await zlibraryApi.fullTextSearch(args);
+      return { content: results, total: results.length, query: args.query };
+    } catch (error: any) { return { error: { message: error.message || 'Failed to perform full text search' } }; }
+  },
+
+  getDownloadHistory: async (args: z.infer<typeof GetDownloadHistoryParamsSchema>) => {
+    try {
+        const results = await zlibraryApi.getDownloadHistory(args);
+        return { content: results, total: results.length };
+    }
+    catch (error: any) { return { error: { message: error.message || 'Failed to get download history' } }; }
+  },
+
+  getDownloadLimits: async () => { // No args expected
+    try { return await zlibraryApi.getDownloadLimits(); }
+    catch (error: any) { return { error: { message: error.message || 'Failed to get download limits' } }; }
+  },
+
+  getRecentBooks: async (args: z.infer<typeof GetRecentBooksParamsSchema>) => {
+    try {
+      const results = await zlibraryApi.getRecentBooks(args);
+      return { content: results, total: results.length };
+    } catch (error: any) { return { error: { message: error.message || 'Failed to get recent books' } }; }
+  },
+
+  downloadBookToFile: async (args: z.infer<typeof DownloadBookToFileParamsSchema>) => {
+    try {
+      // Pass all args directly
+      return await zlibraryApi.downloadBookToFile(args);
+    } catch (error: any) {
+      return { error: { message: error.message || 'Failed to download book' } };
+    }
+  },
+
+  processDocumentForRag: async (args: z.infer<typeof ProcessDocumentForRagParamsSchema>) => {
+    try {
+      // Pass args object directly
+      // Map snake_case arg from request to camelCase expected by function
+      return await zlibraryApi.processDocumentForRag({ filePath: args.file_path, outputFormat: args.output_format });
+    } catch (error: any) {
+      return { error: { message: error.message || 'Failed to process document for RAG' } };
+    }
+  }
+};
+
+// Define a type for the tool registry entries
+// Define ToolDefinition based on usage in ListTools response
+interface ToolDefinition {
+    name: string;
+    description?: string;
+    inputSchema: any; // Use camelCase to match returned object and likely spec
+}
+
+interface ToolRegistryEntry {
+    description: string;
+    schema: ZodObject<ZodRawShape>; // Use ZodObject<any> or a more specific shape if possible
+    handler?: (args: any) => Promise<any>; // Make handler optional in type definition
+}
+
 // Tool Registry
-// Corrected toolRegistry object
-const toolRegistry = {
+const toolRegistry: Record<string, ToolRegistryEntry> = {
   search_books: {
     description: 'Search for books in Z-Library',
     schema: SearchBooksParamsSchema,
@@ -188,111 +214,168 @@ const toolRegistry = {
     schema: GetRecentBooksParamsSchema,
     handler: handlers.getRecentBooks,
   },
-  // Updated entry
   download_book_to_file: {
     description: 'Download a book directly to a local file and optionally process it for RAG',
-    schema: DownloadBookToFileParamsSchema, // Uses updated schema
+    schema: DownloadBookToFileParamsSchema,
     handler: handlers.downloadBookToFile,
-  }, // Added comma
-  // New entry
+  },
   process_document_for_rag: {
-    description: 'Process a downloaded document (EPUB, TXT) to extract text content for RAG',
-    schema: ProcessDocumentForRagParamsSchema, // Uses new schema
+    description: 'Process a downloaded document (EPUB, TXT, PDF) to extract text content for RAG',
+    schema: ProcessDocumentForRagParamsSchema,
     handler: handlers.processDocumentForRag,
   },
-}; // End toolRegistry object
+};
 
-// Check for Python dependencies before starting
 // Helper function to get version from package.json
-function getPackageVersion() {
+function getPackageVersion(): string {
   try {
-    const packageJsonPath = path.join(__dirname, 'package.json');
+    // Use import.meta.url to find package.json relative to the current module
+    const packageJsonPath = path.resolve(__dirname, '..', 'package.json'); // Go up one level from src/lib
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
     return packageJson.version || 'unknown';
-  } catch (error) {
+  } catch (error: any) {
     console.warn('Could not read package.json for version:', error.message);
     return 'unknown';
   }
 }
 
-async function start(opts = {}) {
+interface StartOptions {
+    testing?: boolean;
+}
+
+// Function to generate the tools capability object
+function generateToolsCapability(): Record<string, ToolDefinition> {
+    const toolsCapability: Record<string, ToolDefinition> = {};
+    for (const [name, tool] of Object.entries(toolRegistry)) {
+        try {
+            const jsonSchema = zodToJsonSchema(tool.schema);
+            toolsCapability[name] = {
+                name: name,
+                description: tool.description,
+                inputSchema: jsonSchema, // Use camelCase
+            };
+        } catch (error: any) {
+             console.error(`Failed to generate JSON schema for tool "${name}": ${error.message}`);
+             // Optionally skip adding the tool if schema generation fails
+        }
+    }
+    return toolsCapability;
+}
+
+
+async function start(opts: StartOptions = {}): Promise<{ server: Server; transport: StdioServerTransport } | null> {
   try {
     // Ensure the Python virtual environment is ready
     await ensureVenvReady();
-    // ensureVenvReady throws if setup fails, simplifying error handling here.
-    
-    // Require SDK components *inside* start, after mocks are potentially set by tests
-    const { Server } = require('@modelcontextprotocol/sdk/server/index.js');
-    const { StdioServerTransport } = require('@modelcontextprotocol/sdk/server/stdio.js');
-    const mcpTypes = require('@modelcontextprotocol/sdk/types.js');
+
+    // Generate the tools capability object BEFORE creating the server
+    const toolsCapabilityObject = generateToolsCapability();
 
     // Instantiate the Server class
-    const server = new Server({
-      name: "zlibrary-mcp",
-      description: "Z-Library access for AI assistants",
-      version: getPackageVersion()
+    const server = new Server(
+      { // ServerInfo
+        name: "zlibrary-mcp",
+        description: "Z-Library access for AI assistants",
+        version: getPackageVersion()
+      },
+      { // ServerOptions - Pass the generated tools object
+        capabilities: {
+          tools: toolsCapabilityObject, // Pass the generated object
+          resources: {},
+          prompts: {}
+        }
+      }
+    );
+
+    // Enable tools capability - This is done via constructor now
+
+    // Implement tools/list handler
+    // Use the locally defined ToolDefinition type
+    server.setRequestHandler(ListToolsRequestSchema, async (request: ListToolsRequest): Promise<{ tools: ToolDefinition[] }> => {
+      console.log('Received tools/list request'); // Use console.log for info
+      // The tools are already defined in the capability object, just return them
+      const tools = Object.values(toolsCapabilityObject); // Get values from the pre-generated object
+      console.log(`Responding to tools/list with ${tools.length} tools.`);
+      return { tools };
     });
 
-    // Enable tools capability
-    server.registerCapabilities({ tools: {} });
+    // Implement tools/call handler
+    server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest): Promise<ServerResult> => {
+      console.log(`Received tools/call request for: ${request.params.tool_name}`);
+      const { tool_name, arguments: args } = request.params;
+      // Ensure tool_name is a string before indexing
+      if (typeof tool_name !== 'string') {
+          console.error(`Invalid tool_name type: ${typeof tool_name}`);
+          return { content: [{ type: 'text', text: `Error: Invalid tool name type.` }], isError: true };
+      }
+      const tool = toolRegistry[tool_name];
 
-// Implement tools/list handler - access schema inside start function
-server.setRequestHandler(mcpTypes.ListToolsRequestSchema, async (request) => {
-  const tools = Object.entries(toolRegistry).map(([name, tool]) => {
-    // Convert Zod schema to JSON schema
-    const jsonSchema = zodToJsonSchema(tool.schema, name);
-    return {
-      name: name,
-      description: tool.description,
-      input_schema: jsonSchema, // Use the generated JSON schema
-    };
-  });
-  return { tools };
-});
+      if (!tool) {
+        console.error(`Tool "${tool_name}" not found.`);
+        // Return error in the format { content: [...], isError: true }
+        return { content: [{ type: 'text', text: `Error: Tool "${tool_name}" not found.` }], isError: true };
+      }
 
-// Implement tools/call handler - access schema inside start function
-server.setRequestHandler(mcpTypes.CallToolRequestSchema, async (request) => {
-  const { tool_name, arguments: args } = request.params;
-  const tool = toolRegistry[tool_name];
+      // Validate arguments using Zod schema
+      const validationResult = tool.schema.safeParse(args);
 
-  if (!tool) {
-    return { error: { message: `Tool "${tool_name}" not found.` } };
-  }
+      if (!validationResult.success) {
+        const errorDetails = validationResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join('; ');
+        console.error(`Invalid arguments for tool "${tool_name}": ${errorDetails}`);
+        // Return error in the format { content: [...], isError: true }
+        return { content: [{ type: 'text', text: `Error: Invalid arguments for tool "${tool_name}": ${errorDetails}` }], isError: true };
+      }
 
-  // Validate arguments using Zod schema
-  const validationResult = tool.schema.safeParse(args);
+      // Add check to ensure handler exists before calling
+      if (!tool.handler) {
+          console.error(`Handler for tool "${tool_name}" is not defined.`);
+          return { content: [{ type: 'text', text: `Error: Handler not implemented for tool "${tool_name}".` }], isError: true };
+      }
 
-  if (!validationResult.success) {
-    // Provide detailed validation errors
-    const errorDetails = validationResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join('; ');
-    return { error: { message: `Invalid arguments for tool "${tool_name}": ${errorDetails}` } };
-  }
+      // Add check to ensure handler exists before calling - REMOVED DUPLICATE CHECK
 
-  try {
-    // Call the actual tool handler with validated arguments
-    const result = await tool.handler(validationResult.data);
-    // Check if the handler returned an error object itself
-    if (result && typeof result === 'object' && result.error) {
-       return { error: { message: result.error } };
-    }
-    return { result }; // Wrap the successful result
-  } catch (error) {
-    // Catch errors thrown by the handler
-    console.error(`Error calling tool "${tool_name}":`, error);
-    return { error: { message: error.message || `Tool "${tool_name}" failed.` } };
-  }
-});
+      try {
+        // Call the actual tool handler with validated arguments
+        console.log(`Calling handler for tool "${tool_name}"`);
+        const result = await tool.handler(validationResult.data);
 
-// Create and start the Stdio transport
-    // Create and connect the Stdio transport using the pattern from SDK examples
-    const transport = new StdioServerTransport(); // Instantiate without arguments
-    await server.connect(transport); // Use server.connect instead of transport.start()
-    console.error('Z-Library MCP server is running via Stdio...'); // Use console.error for logs as per examples
+        // Check if the handler returned an error object itself
+        if (result && typeof result === 'object' && 'error' in result && result.error) {
+           console.error(`Handler for tool "${tool_name}" returned error:`, result.error.message || result.error);
+           // Return error in the format { content: [...], isError: true }
+           return { content: [{ type: 'text', text: `Error from tool "${tool_name}": ${result.error.message || result.error}` }], isError: true };
+        }
+        console.log(`Handler for tool "${tool_name}" completed successfully.`);
+        return result; // Return the successful result directly
+      } catch (error: any) {
+        // Catch errors thrown by the handler
+        console.error(`Error calling tool "${tool_name}":`, error);
+        // Return error in the format { content: [...], isError: true }
+        return { content: [{ type: 'text', text: `Error calling tool "${tool_name}": ${error.message || 'Unknown error'}` }], isError: true };
+      }
+    });
 
-    return { server, transport }; // Return both for potential testing needs
-  } catch (error) {
+     // Add handlers for resources/list and prompts/list (required by SDK >= 1.8.0)
+    server.setRequestHandler(ListResourcesRequestSchema, async (request: ListResourcesRequest) => {
+        console.log('Received resources/list request');
+        return { resources: [] }; // Return empty list
+    });
+
+    server.setRequestHandler(ListPromptsRequestSchema, async (request: ListPromptsRequest) => {
+        console.log('Received prompts/list request');
+        return { prompts: [] }; // Return empty list
+    });
+
+
+    // Create and connect the Stdio transport
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+    console.log('Z-Library MCP server (ESM/TS) is running via Stdio...'); // Use console.log
+
+    return { server, transport };
+  } catch (error: any) {
     console.error('Failed to start MCP server:', error);
-    
+
     // Allow tests to bypass process.exit
     if (opts.testing !== true) {
       process.exit(1);
@@ -301,13 +384,14 @@ server.setRequestHandler(mcpTypes.CallToolRequestSchema, async (request) => {
   }
 }
 
-// Only auto-start when this file is run directly
-if (require.main === module) {
-  start().catch(err => { // Add error catching as per examples
+// Auto-start logic needs adjustment for ESM
+// Check if the current module URL is the main module URL
+if (import.meta.url === `file://${process.argv[1]}`) {
+  start().catch(err => {
     console.error("Fatal error starting server:", err);
     process.exit(1);
   });
 }
 
-// Export for testing (note: registeredTools is removed)
-module.exports = { start, handlers, toolRegistry };
+// Export necessary components for potential testing
+export { start, handlers, toolRegistry };
