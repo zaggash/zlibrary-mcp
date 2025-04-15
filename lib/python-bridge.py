@@ -215,21 +215,27 @@ def _process_pdf(file_path: str) -> str:
         # Check if any text was extracted
         if not full_text:
             logging.warning(f"No extractable text found in PDF (possibly image-based): {file_path}")
-            raise ValueError("PDF contains no extractable text layer (possibly image-based)")
+            raise ValueError(
+                "PDF contains no extractable text layer (possibly image-based)"
+            )
 
         logging.info(f"Finished PDF: {file_path}. Extracted length: {len(full_text)}")
         return full_text
 
     except fitz.fitz.FitzError as fitz_error: # Catch specific fitz errors
         logging.error(f"PyMuPDF error processing {file_path}: {fitz_error}")
-        raise RuntimeError(f"Error opening or processing PDF: {file_path} - {fitz_error}")
+        raise RuntimeError(
+            f"Error opening or processing PDF: {file_path} - {fitz_error}"
+        )
     except Exception as e:
         # Catch other potential errors during opening or processing
         logging.error(f"Unexpected error processing PDF {file_path}: {e}")
         # Re-raise specific errors if needed
         if isinstance(e, (ValueError, FileNotFoundError)):
-             raise e
-        raise RuntimeError(f"Error opening or processing PDF: {file_path} - {e}")
+            raise e
+        raise RuntimeError(
+            f"Error opening or processing PDF: {file_path} - {e}"
+        )
     finally:
         # Ensure the document is closed
         if doc:

@@ -1,6 +1,44 @@
 # Debugger Specific Memory
 <!-- Entries below should be added reverse chronologically (newest first) -->
 ## Issue History
+### Issue: Jest ESM Mocking Failures (`venv-manager.test.js`) - Status: Resolved - [2025-04-15 04:31:00]
+- **Reported**: [Implicit, via failing tests] / **Severity**: Medium (Blocked testing of venv logic)
+- **Symptoms**: 3 tests in `__tests__/venv-manager.test.js` (`should skip install...`, `should throw error...`, `should reinstall...`) consistently failed. Errors involved incorrect mock behavior (`fs.existsSync`), unexpected promise resolutions, and incorrect path resolution for `requirements.txt`.
+- **Investigation**:
+    1. Reviewed test code and Memory Bank history, confirming prior failed attempts with `jest.unstable_mockModule` and `jest.spyOn`.
+    2. Standardized mocking strategy to `unstable_mockModule` - Failed.
+    3. Corrected `fs` mock implementations (`existsSync`, `readFileSync`) - Failed (mocks still not applied correctly).
+    4. Identified potential stale build/cache issue.
+    5. Corrected `requirements.txt` path calculation in `src/lib/venv-manager.ts`.
+    6. Corrected test assertions for `requirements.txt` path.
+    7. Rebuilt project (`npm run build`) and cleared Jest cache (`npx jest --clearCache`) - Still failed.
+    8. **Hypothesized** core issue was Jest ESM + built-in module mocking unreliability.
+    9. **Refactored** `src/lib/venv-manager.ts` for Dependency Injection (DI) of `fs`/`child_process`.
+    10. Updated tests to use DI.
+    11. Rebuilt and cleared cache again.
+    12. Ran `npm test` - Success.
+- **Root Cause**: Combination of Jest's unreliable ESM mocking for built-in modules (`fs`, `child_process`), incorrect path logic for `requirements.txt`, and potentially stale build artifacts/cache.
+- **Fix Applied**: Refactored `venv-manager.ts` for Dependency Injection, updated tests accordingly, corrected `requirements.txt` path logic.
+- **Verification**: `npm test` passed successfully [2025-04-15 04:31:00].
+- **Related Issues**: None.
+
+
+### Issue: INT-001 - Client ZodError / No Tools Found - Status: Open (Debugging Halted) - [2025-04-14 18:22:33]
+- **Reported**: [2025-04-14 13:10:48] / **Severity**: High (Blocks tool usage)
+- **Symptoms**: RooCode client UI shows "No tools found" for `zlibrary-mcp`. Direct `use_mcp_tool` calls fail with client-side `ZodError: Expected array, received undefined` at path `content`.
+- **Investigation**:
+    1. Confirmed server uses Stdio, SDK v1.8.0, CJS.
+    2. Compared with working ESM/older SDK servers (`fetcher-mcp`, etc.). Research report: `docs/mcp-server-comparison-report.md`.
+    3. Attempted server-side fixes (response formats, SDK downgrade, SDK imports, logging, schema isolation) - All failed to resolve "No tools found" UI issue.
+    4. Server logs confirmed `ListToolsRequest` handler runs and `zodToJsonSchema` appears to succeed for individual schemas (when isolated or logged with try/catch), but logs truncate when processing the full list, suggesting a fatal error during schema generation/serialization.
+    5. User feedback strongly indicates issue is server-side due to other servers working.
+    6. User directed halt to debugging session due to unproductive attempts and incorrect focus.
+- **Root Cause**: Unconfirmed, but suspected to be within `zlibrary-mcp`. Likely a subtle incompatibility between SDK v1.8.0 / CommonJS / `zod-to-json-schema` causing the `ListToolsResponse` generation to fail silently or produce output the client cannot process.
+- **Fix Applied**: None. Code reverted to original state before debugging attempts.
+- **Verification**: N/A.
+- **Related Issues**: Task 3 (PDF Integration) blocked.
+
+
 ### Issue: INT-001 - Client ZodError on Tool Call - Status: Root Cause Confirmed - [2025-04-14 13:48:12]
 - **Investigation**: Searched GitHub for `CallToolResponse zod`. Found `willccbb/mcp-client-server/src/types/schemas.ts` which defines `CallToolResponse` as `{ result: any; error?: string; duration_ms: number; }`. - [2025-04-14 13:48:12]
 - **Analysis**: This confirms the standard/expected structure places the payload under the `result` key, with type `any`. The client error (`Expected array, received undefined` at path `content`) definitively indicates an incorrect client-side Zod schema expecting a `content` key that must be an array.
@@ -51,6 +89,12 @@
 
 ## Debugging Tools & Techniques
 <!-- Append tool notes using the format below -->
+
+### Technique: Dependency Injection for Built-in Modules (Jest/ESM) - [2025-04-15 04:31:00]
+- **Context**: Mocking built-in Node.js modules (`fs`, `child_process`) in Jest tests using experimental ESM (`--experimental-vm-modules`).
+- **Usage**: When `jest.unstable_mockModule` and `jest.spyOn` prove unreliable for built-ins in ESM, refactor the code under test to accept the module (or specific functions) as an argument. Pass mock implementations directly during tests.
+- **Effectiveness**: High. Completely bypasses Jest's complex/unreliable ESM mocking mechanisms for built-ins, providing direct control over dependencies.
+
 
 ## Performance Observations
 <!-- Append performance notes using the format below -->

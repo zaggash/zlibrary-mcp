@@ -5,10 +5,20 @@
 ### Issue: INT-001 - Client ZodError on Tool Call - Status: Open - [2025-04-14 13:16:12]
 - **Identified**: [2025-04-14 13:10:48]
 - **Components**: MCP Client (RooCode), zlibrary-mcp Server
-- **Symptoms**: Client throws `ZodError: Expected array, received undefined` at path `content` when parsing `CallToolResponse` from `zlibrary-mcp`, even for tools returning objects (e.g., `get_download_limits`).
+- **Symptoms**: Client throws `ZodError: Expected array, received undefined` at path `content` when parsing `CallToolResponse` from `zlibrary-mcp`, even for tools returning objects (e.g., `get_download_limits`, `search`).
 - **Root Cause**: Suspected client-side parsing logic incorrectly expects the `content` field in the response to *always* be an array, failing validation when it's an object.
-- **Resolution**: Paused integration task. Needs investigation of client-side parsing code or MCP specification regarding `CallToolResponse` structure.
+- **Resolution**: Paused integration task. Needs investigation of client-side parsing code or MCP specification regarding `CallToolResponse` structure. **Blocked Task 3 (PDF Integration) verification [2025-04-14 14:50:58].**
 - **Resolved Date**: N/A
+
+
+## Integration Test Scenarios
+<!-- Append test scenarios using the format below -->
+### Scenario: PDF Processing (Task 3) - [2025-04-14 14:50:58]
+- **Components**: [zlibrary-mcp: download_book_to_file, process_document_for_rag], [lib/python-bridge.py: _process_pdf]
+- **Steps**: 1. Combined Workflow (Std PDF) 2. Separate Workflow (Std PDF) 3. Error Handling (Encrypted) 4. Error Handling (Image) 5. Error Handling (Not Found)
+- **Expected**: Success with text/path for standard, specific errors for error cases.
+- **Status**: Blocked
+- **Last Run**: N/A - Blocked by client issue INT-001 preventing acquisition of test Book IDs.
 
 
 ### Integration: Global Execution Fix - [2025-04-14 10:20:48]

@@ -1,5 +1,49 @@
 # SPARC Orchestrator Specific Memory
 <!-- Entries below should be added reverse chronologically (newest first) -->
+### [2025-04-15 15:34:05] Task: Fix Schema Generation / Migrate to ESM / Resolve INT-001
+- Assigned to: code
+- Description: Fix schema generation, migrate project to TypeScript/ESM, resolve test failures, and fix INT-001.
+- Expected deliverable: Passing code, passing tests, INT-001 resolved.
+- Status: completed
+- Completion time: 2025-04-15 15:34:05
+- Outcome: Successfully migrated project to TypeScript/ESM. Corrected capability declaration, schema generation (`zodToJsonSchema`, `inputSchema` key), and SDK usage in `src/index.ts`. Implemented Dependency Injection in `src/lib/venv-manager.ts` to fix Jest/ESM mocking issues. Updated Jest config and all test files. INT-001 resolved; tools now list correctly in client. All tests pass.
+- Link to Progress Entry: N/A
+### [2025-04-14 19:23:33] Task: Evaluate Migration Strategy (SDK Version / Module System) for INT-001
+- Assigned to: architect
+- Description: Evaluate migration options (SDK downgrade, CJS->ESM) vs. fixing schema generation for INT-001.
+- Expected deliverable: Comparative analysis and recommendation.
+- Status: completed
+- Completion time: 2025-04-14 19:23:33
+- Outcome: Confirmed root cause is inadequate dummy schemas, not SDK version/CJS. Recommended Pathway: 1. Fix schema generation using `zod-to-json-schema`. 2. (Optional) Consider ESM migration later for modernization.
+- Link to Progress Entry: N/A
+### [2025-04-14 18:25:45] Task: Debug Issue INT-001 ('No tools found' / ZodError)
+- Assigned to: integration (acting as debug)
+- Description: Investigate client-side errors preventing tool usage.
+- Expected deliverable: Root cause analysis and fix/recommendation.
+- Status: completed (session)
+- Completion time: 2025-04-14 18:25:45
+- Outcome: Debugging session concluded. Root cause suspected in `index.js` `ListToolsRequest` handler (`zodToJsonSchema` incompatibility). Task 2 integration remains paused. Recommendations provided for next debugging steps (isolate schema).
+- Link to Progress Entry: N/A
+### [2025-04-14 18:25:45] Status Update: Task 2 Integration Paused
+- **Task:** Integrate RAG Pipeline Features
+- **Status:** Paused due to unresolved Issue INT-001 ('No tools found'). Integration cannot be fully verified until the tool listing issue is resolved.
+- **Next:** Resume debugging INT-001.
+### [2025-04-14 14:35:51] Task: Refactor PDF Processing Implementation (TDD Refactor Phase)
+- Assigned to: tdd
+- Description: Refactor PDF processing code in `lib/python-bridge.py` while keeping tests passing.
+- Expected deliverable: Refactored code and confirmation.
+- Status: completed
+- Completion time: 2025-04-14 14:35:51
+- Outcome: Refactored `_process_pdf` for logging consistency and PEP 8. Confirmed all tests pass.
+- Link to Progress Entry: N/A
+### [2025-04-14 14:32:01] Task: Implement PDF Processing Features (TDD Green Phase)
+- Assigned to: code
+- Description: Implement PDF processing (Python bridge logic, dependency) to pass failing/xfail tests.
+- Expected deliverable: Passing code and confirmation.
+- Status: completed
+- Completion time: 2025-04-14 14:32:01
+- Outcome: Added `PyMuPDF` to `requirements.txt`. Implemented `_process_pdf` and updated `process_document` in `lib/python-bridge.py`. Fixed unrelated failing tests in `__tests__/index.test.js`. Confirmed all tests pass.
+- Link to Progress Entry: N/A
 ### [2025-04-14 14:22:05] Task: Write Failing Tests for PDF Processing Implementation (Red Phase)
 - Assigned to: tdd
 - Description: Write failing/xfail tests (Red phase) for PDF processing (Python bridge logic, dependency install).
