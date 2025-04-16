@@ -1,5 +1,53 @@
 # Active Context
 <!-- Entries below should be added reverse chronologically (newest first) -->
+[2025-04-15 23:18:25] - Debug - Analysis Complete (zlibrary ID Bugs) - Pinpointed root causes in external `sertraline/zlibrary` source: 1) `get_by_id` fails in `abs.py:BookItem.fetch` (line 449) due to 404 from incorrect URL built in `libasync.py` (line 203). 2) `search(id:...)` fails in `abs.py:SearchPaginator.parse_page` (lines 44 or 57) due to unexpected HTML structure for ID search results.
+
+[2025-04-15 23:14:52] - Debug - Located Source Code (zlibrary) - Found source code URL for the external `zlibrary` Python library (v1.0.2) using `pip show zlibrary`. URL: https://github.com/sertraline/zlibrary.
+
+[2025-04-15 23:12:00] - Architect - Re-evaluating Strategy (ID Lookup ParseError) - Analyzed options after search workaround (`id:{book_id}`) failed. Both `get_by_id` and `id:` search fail in external `zlibrary` lib. Recommended strategy: 1. Briefly search for alternative libs. 2. If none, attempt Fork & Fix of current lib. 3. Fallback to Internal Implementation (direct web scraping). Recorded decision Decision-IDLookupStrategy-01.
+
+[2025-04-15 23:10:11] - Integration - Verification Failed (ID Lookup Workaround) - Manual verification of `get_book_by_id`, `get_download_info`, `download_book_to_file` using search workaround (`id:{book_id}`) failed. The search query itself causes `zlibrary.exception.ParseError: Could not parse book list.` in the underlying library for both valid and invalid IDs. The original ID lookup issue persists.
+
+[2025-04-15 22:43:27] - TDD - Refactor Phase (ID Lookup Workaround) - Completed. Extracted common search logic from `get_by_id` and `get_download_info` into `_find_book_by_id_via_search` helper in `lib/python_bridge.py`. Fixed 2 failing Python tests (`__tests__/python/test_python_bridge.py`) by updating error message assertions. Verified with `pytest` (PASS: 7 passed, 13 xfailed, 4 xpassed) and `npm test` (PASS: 4 suites, 47 tests, 11 todo).
+
+[2025-04-15 22:39:35] - Code - TDD Green Phase (ID Lookup Workaround) - Completed. Modified `lib/python_bridge.py` (`get_by_id`, `get_download_info`) to use `client.search` workaround. Fixed related tests in `__tests__/python/test_python_bridge.py` (removed xfail, updated mocks/assertions, added asyncio import). Fixed regressions in Node tests (`__tests__/zlibrary-api.test.js`, `__tests__/python-bridge.test.js`) related to script path assertions. All Python and Node tests pass.
+
+[2025-04-15 22:11:24] - TDD - Red Phase (ID Lookup Workaround) - Added 8 xfail tests in `__tests__/python/test_python_bridge.py` for the proposed search-based workaround for `get_book_by_id` and `get_download_info`. Tests mock `client.search` and cover success, not found, ambiguous, and missing URL cases. Verified tests are collected and xfailed via pytest (20 xfailed, 4 xpassed). Required multiple attempts to find correct venv Python path.
+
+[2025-04-15 21:51:00] - Debug - Investigating ParseError Workaround - Analyzed `lib/python_bridge.py` and Memory Bank. Confirmed `get_by_id` and `get_download_info` use faulty `client.get_by_id`. Proposed workaround: Replace calls with `client.search(q=f'id:{id}', exact=True, count=1)` and extract data from search results. Assumes search returns sufficient data, including download URL for `get_download_info`.
+[2025-04-15 20:46:14] - Debug - Manual Verification Success (PDF AttributeError) - Retried manual test of `process_document_for_rag` after user replaced `__tests__/assets/sample.pdf` with a valid PDF. Tool call succeeded and returned extracted text. Confirms original `AttributeError` is resolved and PDF processing works with valid input.
+[2025-04-15 20:33:55] - Debug - Manual Verification & Final Fix (PDF AttributeError) - Manual test of `process_document_for_rag` with `__tests__/assets/sample.pdf` failed with `RuntimeError: Cannot open empty file`. Confirmed `sample.pdf` is invalid/empty via `read_file`. This confirms the original `AttributeError` is resolved, as the code now correctly reaches the point of file processing and fails due to bad input. Final fix involved changing the exception handler in `lib/python_bridge.py` to catch generic `RuntimeError`.
+[2025-04-15 20:24:57] - Debug - Fix Verified (PDF AttributeError) - Successfully fixed `AttributeError: module 'fitz' has no attribute 'fitz'` in `lib/python_bridge.py`. Root cause was incorrect exception reference (`fitz.fitz.FitzError`). Also resolved subsequent `pytest` execution issues by renaming `lib/python-bridge.py` to `lib/python_bridge.py` and cleaning up test file imports/tests. Verified with `pytest` and `npm test` (both passed).
+[2025-04-15 19:25:48] - TDD - Regression Fix Complete - Fixed 2 failing tests in `__tests__/zlibrary-api.test.js` related to error handling/promise rejection in `callPythonFunction`. Updated test assertions and mocks. Verified fix with specific suite (`npm test __tests__/zlibrary-api.test.js`) and full suite (`npm test`) runs, both passing.
+
+[2025-04-15 18:39:25] - TDD - Manual Verification (REG-001 Fix - More Tools) - `get_recent_books`: FAIL (Python Error: `process exited with code 1`). Generic Python bridge failure. No REG-001 errors observed.
+
+[2025-04-15 18:36:53] - TDD - Manual Verification (REG-001 Fix - More Tools) - `get_download_history`: FAIL (Python Error: `zlibrary.exception.ParseError: Could not parse downloads list.`). Issue likely in external library parsing of history page. No REG-001 errors observed.
+
+[2025-04-15 18:36:27] - TDD - Manual Verification (REG-001 Fix - More Tools) - `full_text_search` (query: "history philosophy"): Success. Returned results. No REG-001 errors or other Python errors observed.
+
+[2025-04-15 18:34:55] - TDD - Manual Verification (REG-001 Fix - More Tools) - `full_text_search` (query: "philosophy"): FAIL (Python Error: `Exception: At least 2 words must be provided for phrase search. Use 'words=True' to match a single word..`). Tool failed due to incorrect arguments for default phrase search. No REG-001 errors observed.
+
+[2025-04-15 18:26:14] - TDD - Investigation (ParseError URL) - Fetched content of `https://z-library.sk/book/3433851` (URL from ParseError). Result: HTML page with title "Page not found". Confirms the external `zlibrary` library fails parsing because the URL it constructs via `get_by_id` leads to a 404, not a valid book page.
+
+[2025-04-15 18:09:32] - TDD - Manual Verification (REG-001 Fix - More Tools) - `get_book_by_id` (ID: 3433851): FAIL (Python Error: `zlibrary.exception.ParseError: Failed to parse https://z-library.sk/book/3433851.`). `get_download_info` (ID: 3433851): FAIL (Python Error: `zlibrary.exception.ParseError: Failed to parse https://z-library.sk/book/3433851.`). Confirmed known Python `ParseError` affects multiple tools relying on fetching book details by ID. Issue likely in external `zlibrary` library's URL construction (missing slug). No REG-001 errors observed.
+
+[2025-04-15 18:07:11] - TDD - Manual Verification (REG-001 Fix - Download) - `download_book_to_file` (ID: 3433851): FAIL (Python Error: `zlibrary.exception.ParseError: Failed to parse https://z-library.sk/book/3433851.`). Confirmed known Python `ParseError` persists. No REG-001 errors observed.
+
+[2025-04-15 18:05:52] - TDD - Manual Verification (REG-001 Fix) - Tool list displayed. `get_download_limits`: Success. `search_books`: Success. `process_document_for_rag`: FAIL (Python Error: `AttributeError: module 'fitz' has no attribute 'fitz'`). Original REG-001 errors did not reappear. Python `ParseError` not observed. New Python error identified in `process_document_for_rag`.
+
+[2025-04-15 17:50:01] - TDD - Regression Test Run (Post REG-001 Fix) - Executed `npm test`. Result: FAIL. 1 suite (`__tests__/zlibrary-api.test.js`) failed with 2 tests related to error handling/promise rejection in `callPythonFunction`. 3 suites passed. Indicates regression since last known passing state ([2025-04-15 05:31:00]). Failures may affect `search_books` but don't block manual verification of REG-001 fix core mechanism.
+
+[2025-04-15 17:44:46] - Debug - New Issue Identified (Z-Library Parsing) - While verifying fixes for REG-001, encountered `zlibrary.exception.ParseError` when calling `download_book_to_file`. Error occurs in Python library during `get_download_info`. Likely due to Z-Library website changes or anti-scraping measures breaking the library's parsing. This is separate from the original REG-001 issue.
+
+[2025-04-15 17:35:46] - Debug - Additional Verification (REG-001) - Successfully called `search_books` tool, further confirming the applied fixes resolve the tool call regression.
+
+[2025-04-15 17:34:55] - Debug - Verification Successful (REG-001) - Tool call (`get_download_limits`) succeeded after applying fixes for tool name key (`name`), Python bridge path, and response content structure (`type: 'text'`).
+
+[2025-04-15 17:27:46] - Debug - Diagnosis Complete (REG-001) - Confirmed "Invalid tool name type" error persists after ensuring server expects `tool_name` and was rebuilt/restarted. Root cause is client (RooCode `McpHub.ts`) sending tool name as `name` while server SDK expects `tool_name`. Error occurs in SDK validation layer. Fix requires client-side change.
+
+[2025-04-15 16:50:05] - Debug - Fixed Tool Call Regression (REG-001) - Identified root cause of "Invalid tool name type" error as a key mismatch between client (`name`) and server (`tool_name`) in the `tools/call` request params. Applied fix to `src/index.ts` to expect `name`. Removed diagnostic logging. Awaiting user verification.
+
 [2025-04-15 16:32:33] - TDD - Regression Test Complete (ESM/DI) - Completed regression testing after ESM migration & venv-manager DI refactor. Unit tests pass (`npm test`). Manual venv creation simulation successful (cacBhe deleted, server started, venv created, deps installed). Tool list visible in client (INT-001 fix holds). However, basic tool calls (`get_download_limits`) fail with "Invalid tool name type", indicating a new regression in request handling. Debugging attempts via console logs were inconclusive. Reverted debug changes.
 
 [2025-04-15 15:29:00] - Code - Task Resumed & Completed via Delegation (Jest/ESM Fix) - Resumed task after delegation. Received report from delegated agent confirming Jest test suite is now passing. Key fix involved refactoring `src/lib/venv-manager.ts` for Dependency Injection (DI) to overcome unreliable mocking of built-in modules (`fs`, `child_process`) in Jest's ESM environment. Test files were updated accordingly. Codebase is now functional with passing tests.

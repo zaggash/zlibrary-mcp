@@ -1,5 +1,16 @@
 # Auto-Coder Specific Memory
 <!-- Entries below should be added reverse chronologically (newest first) -->
+### Implementation: ID Lookup Workaround (TDD Green Phase) - [2025-04-15 22:39:35]
+- **Approach**: Implemented search-based workaround for `get_by_id` and `get_download_info` in `lib/python_bridge.py` to address `ParseError` from faulty `client.get_by_id`. Followed TDD Green phase: modified code minimally to make existing xfailed tests pass.
+- **Key Files Modified/Created**:
+  - `lib/python_bridge.py`: Replaced `client.get_by_id` calls with `client.search(q=f'id:{book_id}', exact=True, count=1)` and added result handling (0, 1, >1 results).
+  - `__tests__/python/test_python_bridge.py`: Removed `@pytest.mark.xfail` from 8 tests, corrected function name (`get_by_id`), added `import asyncio`, updated mocks (`AsyncMock`), and adjusted assertions for error messages and return values.
+  - `__tests__/zlibrary-api.test.js`: Corrected `toHaveBeenCalledWith` assertions for `mockPythonShellRun` (script name `python_bridge.py`, script path `/home/rookslog/zlibrary-mcp/lib`).
+  - `__tests__/python-bridge.test.js`: Corrected `toHaveBeenCalledWith` assertion for `spawn` (script path `/home/rookslog/zlibrary-mcp/dist/lib/python_bridge.py`).
+- **Notes**: Required multiple test runs and fixes for Python tests (missing `asyncio` import, incorrect `AsyncMock` usage) and Node tests (incorrect script name/path assertions in mocks). All tests now pass.
+- **Related**: Decision-ParseErrorWorkaround-01, ActiveContext [2025-04-15 22:39:35], GlobalContext [2025-04-15 22:39:35]
+
+
 ### Implementation: Jest/ESM Test Suite Fix (Delegated) - [2025-04-15 15:29:00]
 - **Approach**: Task delegated due to context overload and repeated errors fixing Jest/ESM issues. Delegated agent identified unreliable mocking of built-in Node modules (`fs`, `child_process`) with `jest.unstable_mockModule` and dynamic imports as the root cause of persistent test failures (`spawn ENOENT`, timeouts).
 - **Resolution**: Refactored `src/lib/venv-manager.ts` to use Dependency Injection, decoupling it from direct `fs`/`child_process` usage. Updated `__tests__/venv-manager.test.js` to pass mock objects via DI. Corrected various assertion errors in other test files.

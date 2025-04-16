@@ -1,5 +1,93 @@
 # SPARC Orchestrator Specific Memory
 <!-- Entries below should be added reverse chronologically (newest first) -->
+### [2025-04-15 23:15:47] Task: Locate Source Code for `zlibrary` Python Library
+- Assigned to: debug
+- Description: Find the source repository for the external `zlibrary` package.
+- Expected deliverable: Source code URL.
+- Status: completed
+- Completion time: 2025-04-15 23:15:47
+- Outcome: Successfully located the source code repository via `pip show zlibrary`: https://github.com/sertraline/zlibrary
+- Link to Progress Entry: N/A
+### [2025-04-15 23:13:21] Task: Re-evaluate Strategy for ID-Based Lookup Failures (`ParseError`)
+- Assigned to: architect
+- Description: Re-evaluate options (Internal Implementation vs. Find/Fork/Fix) for ID lookup failures after search workaround failed.
+- Expected deliverable: Analysis and recommendation.
+- Status: completed
+- Completion time: 2025-04-15 23:13:21
+- Outcome: Recommended pursuing 'Fork & Fix' strategy first (find source, debug, fix external `zlibrary` library). If unsuccessful, pivot to 'Internal Implementation' (scraping/parsing).
+- Link to Progress Entry: N/A
+### [2025-04-15 23:10:44] Task: Integrate and Verify ID-Based Lookup Workaround
+- Assigned to: integration
+- Description: Integrate and verify search-based workaround for ID lookups.
+- Expected deliverable: Confirmation, test report.
+- Status: failed
+- Completion time: 2025-04-15 23:10:44
+- Outcome: Verification FAILED. Manual testing showed `client.search(q=f'id:{book_id}', ...)` also triggers `ParseError: Could not parse book list.`. The workaround is ineffective. ID-based lookups remain broken due to external library issues.
+- Link to Progress Entry: N/A
+### [2025-04-15 22:44:03] Task: Refactor ID-Based Lookup Workaround (TDD Refactor Phase)
+- Assigned to: tdd
+- Description: Refactor search-based workaround in `lib/python_bridge.py`.
+- Expected deliverable: Refactored code and confirmation.
+- Status: completed
+- Completion time: 2025-04-15 22:44:03
+- Outcome: Extracted common search logic into `_find_book_by_id_via_search` helper function in `lib/python_bridge.py`. Updated `get_by_id` and `get_download_info` to use helper. Fixed 2 Python tests with updated error messages. Confirmed all tests pass.
+- Link to Progress Entry: N/A
+### [2025-04-15 22:40:41] Task: Implement ID-Based Lookup Workaround (TDD Green Phase)
+- Assigned to: code
+- Description: Implement search-based workaround for `get_book_by_id` and `get_download_info` in `lib/python_bridge.py`.
+- Expected deliverable: Passing code and confirmation.
+- Status: completed
+- Completion time: 2025-04-15 22:40:41
+- Outcome: Modified `get_by_id` and `get_download_info` in `lib/python_bridge.py` to use `client.search`. Updated Python tests (`__tests__/python/test_python_bridge.py`) and fixed Node.js test regressions (`__tests__/zlibrary-api.test.js`, `__tests__/python-bridge.test.js`). All tests pass.
+- Link to Progress Entry: N/A
+### [2025-04-15 22:02:31] Task: Diagnose and Find Workaround for ID-Based Lookup `ParseError`
+- Assigned to: debug
+- Description: Diagnose `ParseError` from `get_by_id` and find workaround using existing library.
+- Expected deliverable: Analysis, workaround proposal, implementation outline.
+- Status: completed
+- Completion time: 2025-04-15 22:02:31
+- Outcome: Confirmed `ParseError` due to external library's `get_by_id` creating incorrect URL (missing slug). Proposed workaround: Replace `client.get_by_id(id)` with `client.search(q=f'id:{id}', exact=True, count=1)` in `lib/python_bridge.py` for `get_book_by_id` and `get_download_info` functions, extracting details from the search result.
+- Link to Progress Entry: N/A
+### [2025-04-15 20:53:16] Task: Debug PDF Processing AttributeError (`module 'fitz' has no attribute 'fitz'`)
+- Assigned to: debug
+- Description: Diagnose and fix the AttributeError preventing PDF processing.
+- Expected deliverable: Root cause analysis and fix.
+- Status: completed
+- Completion time: 2025-04-15 20:53:16
+- Outcome: Resolved `AttributeError` by correcting exception handling in `lib/python_bridge.py`. Also fixed related issues: renamed `python-bridge.py` to `python_bridge.py`, updated callers, fixed test setup (`pytest.ini`, `__init__.py`, dev dependencies). PDF processing confirmed working via manual test. All tests pass.
+- Link to Progress Entry: N/A
+### [2025-04-15 19:35:29] Task: Fix Failing Unit Tests in `zlibrary-api.test.js`
+- Assigned to: tdd
+- Description: Fix 2 failing unit tests related to error handling in `callPythonFunction`.
+- Expected deliverable: Passing tests.
+- Status: completed
+- Completion time: 2025-04-15 19:35:29
+- Outcome: Successfully fixed tests by adjusting assertions and mocks in `__tests__/zlibrary-api.test.js`. Confirmed all tests pass (`npm test`).
+- Link to Progress Entry: N/A
+### [2025-04-15 18:51:38] Task: Verify REG-001 Fix and Check for Regressions
+- Assigned to: tdd
+- Description: Verify REG-001 fix stability and check for new regressions after ESM migration.
+- Expected deliverable: Test results and manual verification report.
+- Status: completed (Multiple Issues Found)
+- Completion time: 2025-04-15 18:51:38
+- Outcome: REG-001 fix confirmed stable (tool calls initiated). However, found new issues: 2 failing unit tests (`zlibrary-api.test.js`), PDF processing `AttributeError`, ID-based lookup `ParseError` (due to incorrect URL construction), `get_download_history` `ParseError`, `get_recent_books` generic error.
+- Link to Progress Entry: N/A
+### [2025-04-15 17:48:08] Task: Debug Tool Call Regression ('Invalid tool name type')
+- Assigned to: debug
+- Description: Diagnose and fix the tool call failure occurring after ESM migration.
+- Expected deliverable: Root cause analysis and fix.
+- Status: completed
+- Completion time: 2025-04-15 17:48:08
+- Outcome: Resolved REG-001. Identified multiple issues: parameter key mismatch (`name` vs `tool_name`), incorrect post-build Python path, incompatible response format (`content` array with `type: 'text'` needed). Applied fixes to `src/index.ts`, `src/lib/zlibrary-api.ts`, `lib/python-bridge.py`. Tool calls now functional. New Python `ParseError` noted.
+- Link to Progress Entry: N/A
+### [2025-04-15 16:38:44] Task: Regression Testing after ESM Migration & INT-001 Fix
+- Assigned to: tdd
+- Description: Perform regression testing after ESM migration and DI implementation.
+- Expected deliverable: Test results, manual verification report.
+- Status: completed (Regression Found)
+- Completion time: 2025-04-15 16:38:44
+- Outcome: Unit tests pass. Venv management verified manually. Tool discovery (INT-001 fix) confirmed working. **Regression Detected:** Tool calls fail with 'Error: Invalid tool name type'.
+- Link to Progress Entry: N/A
 ### [2025-04-15 15:34:05] Task: Fix Schema Generation / Migrate to ESM / Resolve INT-001
 - Assigned to: code
 - Description: Fix schema generation, migrate project to TypeScript/ESM, resolve test failures, and fix INT-001.
