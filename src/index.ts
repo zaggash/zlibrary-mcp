@@ -264,6 +264,7 @@ function generateToolsCapability(): Record<string, ToolDefinition> {
 
 
 async function start(opts: StartOptions = {}): Promise<{ server: Server; transport: StdioServerTransport } | null> {
+    // --- RAW INPUT LOGGING REMOVED ---
   try {
     // Ensure the Python virtual environment is ready
     await ensureVenvReady();
@@ -301,19 +302,19 @@ async function start(opts: StartOptions = {}): Promise<{ server: Server; transpo
 
     // Implement tools/call handler
     server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest): Promise<ServerResult> => {
-      console.log(`Received tools/call request for: ${request.params.tool_name}`);
-      const { tool_name, arguments: args } = request.params;
-      // Ensure tool_name is a string before indexing
-      if (typeof tool_name !== 'string') {
-          console.error(`Invalid tool_name type: ${typeof tool_name}`);
+      console.log(`Received tools/call request for: ${request.params.tool_name}`); // Reverted log
+      const { name: toolName, arguments: args } = request.params; // Use 'name' again, matching fetcher-mcp
+      // Ensure toolName is a string before indexing
+      if (typeof toolName !== 'string') { // Check toolName type
+          console.error(`Invalid tool name type: ${typeof toolName}`); // Log toolName type
           return { content: [{ type: 'text', text: `Error: Invalid tool name type.` }], isError: true };
       }
-      const tool = toolRegistry[tool_name];
+      const tool = toolRegistry[toolName]; // Use toolName for lookup
 
       if (!tool) {
-        console.error(`Tool "${tool_name}" not found.`);
+        console.error(`Tool "${toolName}" not found.`); // Use toolName in error
         // Return error in the format { content: [...], isError: true }
-        return { content: [{ type: 'text', text: `Error: Tool "${tool_name}" not found.` }], isError: true };
+        return { content: [{ type: 'text', text: `Error: Tool "${toolName}" not found.` }], isError: true }; // Use toolName in error
       }
 
       // Validate arguments using Zod schema
@@ -321,37 +322,41 @@ async function start(opts: StartOptions = {}): Promise<{ server: Server; transpo
 
       if (!validationResult.success) {
         const errorDetails = validationResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join('; ');
-        console.error(`Invalid arguments for tool "${tool_name}": ${errorDetails}`);
+        console.error(`Invalid arguments for tool "${toolName}": ${errorDetails}`); // Use toolName in error
         // Return error in the format { content: [...], isError: true }
-        return { content: [{ type: 'text', text: `Error: Invalid arguments for tool "${tool_name}": ${errorDetails}` }], isError: true };
+        return { content: [{ type: 'text', text: `Error: Invalid arguments for tool "${toolName}": ${errorDetails}` }], isError: true }; // Use toolName in error
       }
 
       // Add check to ensure handler exists before calling
       if (!tool.handler) {
-          console.error(`Handler for tool "${tool_name}" is not defined.`);
-          return { content: [{ type: 'text', text: `Error: Handler not implemented for tool "${tool_name}".` }], isError: true };
+          console.error(`Handler for tool "${toolName}" is not defined.`); // Use toolName in error
+          return { content: [{ type: 'text', text: `Error: Handler not implemented for tool "${toolName}".` }], isError: true }; // Use toolName in error
       }
 
       // Add check to ensure handler exists before calling - REMOVED DUPLICATE CHECK
 
       try {
         // Call the actual tool handler with validated arguments
-        console.log(`Calling handler for tool "${tool_name}"`);
+        console.log(`Calling handler for tool "${toolName}"`); // Use toolName in log
         const result = await tool.handler(validationResult.data);
 
         // Check if the handler returned an error object itself
         if (result && typeof result === 'object' && 'error' in result && result.error) {
-           console.error(`Handler for tool "${tool_name}" returned error:`, result.error.message || result.error);
+           console.error(`Handler for tool "${toolName}" returned error:`, result.error.message || result.error); // Use toolName in error
            // Return error in the format { content: [...], isError: true }
-           return { content: [{ type: 'text', text: `Error from tool "${tool_name}": ${result.error.message || result.error}` }], isError: true };
+           return { content: [{ type: 'text', text: `Error from tool "${toolName}": ${result.error.message || result.error}` }], isError: true }; // Use toolName in error
         }
-        console.log(`Handler for tool "${tool_name}" completed successfully.`);
-        return result; // Return the successful result directly
+        console.log(`Handler for tool "${toolName}" completed successfully.`); // Use toolName in log
+        // Wrap the successful result in the expected content structure
+        // Return just the content array, as expected by the client Zod schema
+        // Cast to 'any' to bypass TS error, assuming the structure is correct for runtime
+        // Return result as stringified JSON within a "text" content block
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] } as any;
       } catch (error: any) {
         // Catch errors thrown by the handler
-        console.error(`Error calling tool "${tool_name}":`, error);
+        console.error(`Error calling tool "${toolName}":`, error); // Use toolName in error
         // Return error in the format { content: [...], isError: true }
-        return { content: [{ type: 'text', text: `Error calling tool "${tool_name}": ${error.message || 'Unknown error'}` }], isError: true };
+        return { content: [{ type: 'text', text: `Error calling tool "${toolName}": ${error.message || 'Unknown error'}` }], isError: true }; // Use toolName in error
       }
     });
 
@@ -369,6 +374,8 @@ async function start(opts: StartOptions = {}): Promise<{ server: Server; transpo
 
     // Create and connect the Stdio transport
     const transport = new StdioServerTransport();
+
+    // --- RAW INPUT LOGGING REMOVED FROM HERE ---
     await server.connect(transport);
     console.log('Z-Library MCP server (ESM/TS) is running via Stdio...'); // Use console.log
 

@@ -8,7 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /**
- * Execute a Python function from the python-bridge.py script.
+ * Execute a Python function from the python_bridge.py script.
  * @param functionName - Name of the Python function to call.
  * @param args - Arguments to pass to the function.
  * @returns Promise resolving with the result from the Python function.
@@ -22,7 +22,7 @@ export async function callPythonFunction(functionName: string, args: any[] = [])
 
       // Path to the Python bridge script
       // Assuming python-bridge.py is in the same directory after compilation
-      const scriptPath = path.join(__dirname, 'python-bridge.py');
+      const scriptPath = path.join(__dirname, 'python_bridge.py');
 
       // Serialize arguments as JSON
       const serializedArgs = JSON.stringify(args);

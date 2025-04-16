@@ -11,7 +11,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Path to the Python bridge script
-const BRIDGE_SCRIPT = path.join(__dirname, 'python-bridge.py');
+// Calculate path relative to the compiled JS file location (dist/lib)
+// Go up two levels from dist/lib to the project root, then into the source lib dir
+const BRIDGE_SCRIPT_PATH = path.resolve(__dirname, '..', '..', 'lib');
+const BRIDGE_SCRIPT_NAME = 'python_bridge.py';
 
 /**
  * Execute a Python function from the Z-Library repository
@@ -27,7 +30,7 @@ async function callPythonFunction(functionName: string, args: any[] = []): Promi
     const options: PythonShellOptions = {
       mode: 'json',
       pythonPath: venvPythonPath, // Use the Python from our managed venv
-      scriptPath: __dirname,
+      scriptPath: BRIDGE_SCRIPT_PATH, // Use the calculated path to the source lib dir
       args: [functionName, JSON.stringify(args)]
     };
 
@@ -35,7 +38,7 @@ async function callPythonFunction(functionName: string, args: any[] = []): Promi
     // PythonShell.run returns Promise<string[] | undefined>
     // We expect JSON, so results[0] should be the JSON string if successful
     // PythonShell with mode: 'json' should return an array of parsed JSON objects (or throw an error)
-    const results = await PythonShell.run('python-bridge.py', options);
+    const results = await PythonShell.run(BRIDGE_SCRIPT_NAME, options); // Run the script name relative to scriptPath
 
     // Check if results exist and contain at least one element
     if (!results || results.length === 0) {
@@ -46,6 +49,7 @@ async function callPythonFunction(functionName: string, args: any[] = []): Promi
     const resultData = results[0];
 
     // Check if the Python script itself returned an error structure
+    // Assumes python-shell in json mode provides a parsed object or throws/rejects
     if (resultData && typeof resultData === 'object' && 'error' in resultData && resultData.error) {
         throw new Error(resultData.error);
     }
@@ -53,8 +57,12 @@ async function callPythonFunction(functionName: string, args: any[] = []): Promi
     // Return the successful result from Python
     return resultData;
   } catch (err: any) {
+    // Log the full error object from python-shell
+    console.error(`[callPythonFunction Error - ${functionName}] Full error object:`, JSON.stringify(err, null, 2));
+    // Capture stderr if available
+    const stderrOutput = err.stderr ? ` Stderr: ${err.stderr}` : '';
     // Explicitly create the wrapped message and throw a new error
-    const wrappedMessage = `Python bridge execution failed for ${functionName}: ${err.message || err}`;
+    const wrappedMessage = `Python bridge execution failed for ${functionName}: ${err.message || err}.${stderrOutput}`;
     throw new Error(wrappedMessage);
   }
 }
@@ -218,7 +226,9 @@ export async function downloadBookToFile({
 }: DownloadBookToFileArgs): Promise<any> { // Added process_for_rag
   try {
     // First get the download info (includes URL)
+    console.log(`[downloadBookToFile - ${id}] Attempting to get download info...`);
     const downloadInfo = await getDownloadInfo({ id, format }); // Pass args object
+    console.log(`[downloadBookToFile - ${id}] Got download info:`, downloadInfo ? JSON.stringify(downloadInfo).substring(0, 100) + '...' : 'null/undefined');
 
     if (!downloadInfo || downloadInfo.error) {
       throw new Error(downloadInfo.error || 'Failed to get download info');
