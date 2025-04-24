@@ -1,5 +1,27 @@
 # SPARC Orchestrator Feedback
 <!-- Entries below should be added reverse chronologically (newest first) -->
+### [2025-04-23 23:26:20] Intervention: User Identified Critical RAG Pipeline Design Flaw
+- **Trigger**: User denied `new_task` for Task 3 Integration Verification.
+- **Context**: SPARC delegated verification based on existing specs where RAG tools (`process_document_for_rag`, `download_book_to_file` combined workflow) return full processed text content.
+- **Action Taken**: Halted Task 2 & 3 integration verification. Acknowledged user feedback that returning full text content overloads agent context and causes instability. Confirmed RAG tools must be redesigned to save processed text to a file and return the file path.
+- **Rationale**: Align with user feedback and context management best practices. Returning large text blobs directly is unsustainable.
+- **Outcome**: Integration tasks halted. Redesign task will be delegated to `architect` mode.
+- **Follow-up**: Delegate redesign task to `architect`.
+
+### [2025-04-23 22:52:05] Intervention: User Introduced Delegate and Early Return Clauses
+- **Trigger**: User query about outstanding tasks and explicit instruction regarding context window management.
+- **Context**: Context window size at 60%.
+- **Action Taken**: Acknowledged and logged the Delegate Clause (proactive handover on high context/low performance) and Early Return Clause (early exit for subtasks on blockers/loops).
+- **Rationale**: Incorporate user-defined operational guidelines for improved performance and context management.
+- **Outcome**: SPARC will now monitor context and performance more proactively and initiate handover via Delegate Clause when necessary. Sub-modes will be instructed on the Early Return Clause.
+- **Follow-up**: Apply Delegate Clause immediately due to current context size.
+### [2025-04-16 00:07:43] Intervention: User Feedback on Git Operations
+- **Trigger**: User pointed out potential availability of Git MCP tools instead of manual fork/clone/push.
+- **Context**: SPARC requested manual Git operations from the user.
+- **Action Taken**: Logged feedback. Acknowledged oversight. Clarified that *forking* still requires user action but subsequent steps (clone, apply, commit, push) will be attempted via tool delegation once the user provides their fork URL.
+- **Rationale**: Utilize available tools where possible while respecting limitations regarding user account actions.
+- **Outcome**: Re-requested user's fork URL to proceed with tool-based Git operations.
+- **Follow-up**: Await fork URL.
 ### [2025-04-15 22:03:39] Intervention: User Feedback on TDD Task Delegation
 - **Trigger**: User denied `new_task` for `tdd` (Write Failing Tests for ID-Based Lookup Workaround).
 - **Context**: User requested assurance that the delegated mode's final `attempt_completion` result message would be detailed.

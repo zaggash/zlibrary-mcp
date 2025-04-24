@@ -1,5 +1,19 @@
 # Debugger Feedback
 <!-- Entries below should be added reverse chronologically (newest first) -->
+### Feedback [2025-04-16 07:27:22]
+- **Source**: User Feedback
+- **Issue**: Agent's initial `attempt_completion` message correctly identified the `id:` search failure but didn't fully connect it to the inability to get the correct book page URL (with slug), which was the underlying goal of the search workaround.
+- **Feedback**: User pointed out the discrepancy between search URLs and actual book page URLs (containing slugs) as described in `docs/zlibrary_repo_overview.md`.
+- **Action**: Acknowledged feedback. Refined diagnosis to explicitly state that the `id:` search failure prevents discovery of the slug, making direct book page fetching impossible. Updated Memory Bank entries accordingly before re-attempting completion.
+
+
+### Feedback [2025-04-16 07:15:06]
+- **Source**: User Feedback & Agent Error
+- **Issue**: Agent repeatedly asked user for logs that were not appearing in the expected location (RooCode Output channel) due to the library's logger being configured with a `NullHandler`.
+- **Feedback**: User expressed frustration about the lack of logs and the agent's inability to locate them or suggest alternatives.
+- **Action**: Acknowledged error. Read `logger.py`, identified `NullHandler`. Modified `logger.py` to use `StreamHandler(sys.stderr)` and set level to `DEBUG`. Successfully captured logs on subsequent test. Will be more proactive in checking logger configurations when logs are missing.
+
+
 ### Feedback [2025-04-15 22:01:40]
 - **Source**: User Feedback
 - **Issue**: `attempt_completion` message for ParseError workaround diagnosis lacked sufficient detail.

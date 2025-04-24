@@ -1,15 +1,97 @@
 # Product Context
 <!-- Entries below should be added reverse chronologically (newest first) -->
 
+### Product: Search-First ID Lookup Specification - [2025-04-16 18:14:19]
+- **Context**: Specification generated for an alternative internal ID lookup strategy requested by the user.
+- **Strategy**: Uses internal search (query=ID) via `httpx`/`BeautifulSoup` to find the book page URL, then fetches/parses that page.
+- **Components**: New `_internal_search` function, modified `_internal_get_book_details_by_id` function in `lib/python_bridge.py`, new exceptions (`InternalBookNotFoundError`, `InternalParsingError`, `InternalFetchError`).
+- **Status**: Specification generated (Draft).
+- **Related**: `docs/search-first-id-lookup-spec.md`, Decision-SearchFirstIDLookup-01
+
+
 # System Patterns
+### Pattern: RAG Pipeline File Output - [2025-04-23 23:30:58]
+- **Context**: Processing documents (EPUB, TXT, PDF) for RAG workflows.
+- **Problem**: Returning large amounts of extracted text directly via MCP tool results causes agent instability and context overload.
+- **Solution**: Modify RAG processing tools (`process_document_for_rag`, combined `download_book_to_file`) to save the extracted/processed text to a dedicated file (e.g., `./processed_rag_output/<original_filename>.processed.txt`). The tools return the path (`processed_file_path`) to this output file instead of the content itself.
+- **Components**: Updated `process_document_for_rag` and `download_book_to_file` tools, modifications to `lib/zlibrary-api.ts` (Node.js) and `lib/python-bridge.py` (Python - handles saving).
+- **Benefits**: Prevents context overload, provides stable access to processed content for agents, decouples processing from immediate context usage.
+- **Related**: Decision-RAGOutputFile-01, Intervention [2025-04-23 23:26:50], `docs/architecture/rag-pipeline.md` (v2), `docs/architecture/pdf-processing-integration.md` (v2)
+
+
+### Pattern: RAG Pipeline File Output - [2025-04-23 23:29:31]
+- **Context**: Redesign of RAG processing tools (`process_document_for_rag`, `download_book_to_file`) to address context overload issues.
+- **Problem**: Returning large amounts of processed text directly caused agent instability.
+- **Solution**: Modify tools to save processed text (EPUB/TXT/PDF) to a dedicated file (`./processed_rag_output/<original_name>.processed.txt`) and return the `processed_file_path` instead of raw text. Python bridge handles text extraction and file saving. Node.js layer returns the path(s).
+- **Components**: `lib/python-bridge.py` (new `_save_processed_text` helper, modified `process_document`), `lib/zlibrary-api.ts` (updated return value handling), `index.ts` (updated tool schemas/outputs).
+- **Error Handling**: File save errors in Python are caught and reported as structured errors by Node.js; raw text is not returned on save failure.
+- **Related**: Decision-RAGOutputFile-01, `docs/architecture/rag-pipeline.md` (v2), `docs/architecture/pdf-processing-integration.md` (v2)
+
+
+### Pattern: Node.js to Python Bridge Argument Passing (python-shell) - [2025-04-23 22:12:51]
+- **Context**: Passing arguments from Node.js (`zlibrary-api.ts`) to a Python script (`python_bridge.py`) using the `python-shell` library.
+- **Problem**: Passing `args: [functionName, JSON.stringify(argsObject)]` to `PythonShell` options caused the Python script (`sys.argv`) to receive the stringified object as the third argument (`sys.argv[2]`). The Python `main` function parsed this correctly, but then attempted `**args_dict` unpacking, leading to `TypeError: ... argument after ** must be a mapping, not list` because `args_dict` was derived incorrectly or used inappropriately.
+- **Solution**: Ensure the `args` array in `PythonShell` options contains only the function name and the *already serialized* JSON string of arguments: `const serializedArgs = JSON.stringify(argsObject); ... options = { ..., args: [functionName, serializedArgs] };`. The Python script's `main` function should then correctly parse `sys.argv[2]` into a dictionary.
+- **Related**: Issue REG-001, ActiveContext [2025-04-23 22:12:51]
+
+
+### Pattern: MCP Server Rebuild/Restart Workflow (RooCode) - [2025-04-23 20:51:53]
+- **Context**: Applying changes to a local MCP server (like `zlibrary-mcp`) requires a specific rebuild/restart process when used within RooCode.
+- **Problem**: Running `npm run build` via `execute_command` is insufficient for RooCode to pick up changes.
+- **Solution**: After modifying server source code:
+    1. Run `npm run build` (or equivalent build command) via `execute_command`.
+    2. **Crucially, ask the user to manually restart the specific MCP server using the restart button in the RooCode extension's MCP settings UI.** This ensures RooCode reloads the server process with the newly built code.
+- **Related**: Feedback [2025-04-23 20:51:53]
+
+
+### Pattern: Search-First Internal ID Lookup - [2025-04-16 18:40:05]
+- **Implementation**: Implemented `_internal_search` and modified `_internal_get_book_details_by_id` in `lib/python_bridge.py` using `httpx` and `BeautifulSoup` per `docs/search-first-id-lookup-spec.md`. `_internal_search` uses the book ID as a query. `_internal_get_book_details_by_id` calls `_internal_search`, fetches the resulting book page URL, and parses it using placeholder selectors. Callers (`get_by_id`, `get_download_info`, `main`) updated to use the new function and translate `InternalBookNotFoundError` -> `ValueError`, `InternalFetchError`/`InternalParsingError` -> `RuntimeError`.
+- **Status**: TDD Green Phase complete. Python tests pass (relevant ones), Node tests pass.
+- **Related**: `docs/search-first-id-lookup-spec.md`, ActiveContext [2025-04-16 18:40:05], Decision-SearchFirstIDLookup-01
+
+
+
+### Pattern Update: Internal ID-Based Book Lookup (Scraping) - [2025-04-16 08:38:32]
+- **Implementation**: Implemented `_internal_get_book_details_by_id` in `lib/python_bridge.py` using `httpx`. Handles 404 as `InternalBookNotFoundError`. Callers (`get_by_id`, `get_download_info`) updated to use this function and translate errors (`InternalBookNotFoundError` -> `ValueError`, others -> `RuntimeError`).
+- **Status**: TDD Green Phase complete. Python tests pass (relevant ones), Node tests pass.
+- **Related**: `docs/internal-id-lookup-spec.md`, ActiveContext [2025-04-16 08:38:32]
+
+
+### Pattern: Internal ID-Based Book Lookup (Scraping) - [2025-04-16 08:10:00]
+- **Context**: Replacing failed external `zlibrary` ID lookups (`get_book_by_id`, `get_download_info`).
+- **Problem**: External library fails due to website changes (404 on `/book/ID`, non-functional `id:` search). Slug required for direct URL is unobtainable.
+- **Solution**: Implement internal fetching/parsing within `lib/python_bridge.py`. Attempt to fetch `https://<domain>/book/ID` using `httpx`. **Explicitly handle the expected 404 response as 'Book Not Found'.** If a 200 OK is received (unlikely), parse HTML with `BeautifulSoup4`.
+- **Components**: New function `_internal_get_book_details_by_id` in `lib/python_bridge.py`, modifications to `get_book_by_id`/`get_download_info` callers, `httpx` dependency.
+- **Limitations**: Highly susceptible to website structure changes and anti-scraping measures. Does *not* resolve the missing slug issue; relies on 404 handling.
+- **Related**: Decision-InternalIDLookupURL-01, Issue-BookNotFound-IDLookup-02, ComponentSpec-InternalIDScraper-01
+
+
 <!-- Entries below should be added reverse chronologically (newest first) -->
+### Pattern: Direct Book Page Handling in Search Results - [2025-04-16 00:03:00]
+- **Identification**: `search(q='id:...')` queries in `zlibrary` library sometimes return a direct book page HTML instead of a standard search result list, causing `ParseError` in `SearchPaginator.parse_page`.
+- **Resolution**: Modified `SearchPaginator.parse_page` in `zlibrary/src/zlibrary/abs.py` to detect this case (missing `#searchResultBox` on an `id:` search URL). If detected, it attempts to parse the page directly using a new helper method `BookItem._parse_book_page_soup` (extracted from `BookItem.fetch`).
+- **Related**: Issue-ParseError-IDLookup-01, ActiveContext [2025-04-16 00:02:36]
+
+
 ### Pattern: External Library URL Construction Error (zlibrary `get_by_id`) - [2025-04-15 21:51:00]
 - **Identification**: `zlibrary.exception.ParseError` on ID lookups, confirmed 404 response due to missing slug in URL generated by `client.get_by_id`.
 - **Causes**: Likely hardcoded URL format in the external `zlibrary` library's `get_by_id` method that doesn't account for required slugs.
 - **Components**: `lib/python_bridge.py` (calls `client.get_by_id`), external `zlibrary` library.
+    - **Resolution**: Fixed in `zlibrary/src/zlibrary/libasync.py` by modifying `get_by_id` to use `search(q=f'id:{id}', exact=True, count=1)` instead of constructing the URL directly. See ActiveContext [2025-04-16 00:02:36].
+
 - **Resolution**: Workaround proposed (`client.search(q=f'id:{id}')`) **FAILED**. Both `get_by_id` and `id:` search trigger `ParseError`. See Decision-IDLookupStrategy-01.
 - **Related**: Issue-ParseError-IDLookup-01, Decision-ParseErrorWorkaround-01
 - **Last Seen**: 2025-04-15 23:10:11 (Workaround Failure)
+
+
+### Pattern Update: External Library URL Construction Error (zlibrary `get_by_id`) - [2025-04-16 07:27:22]
+- **Note**: The previously attempted workaround (`client.search(q=f'id:{id}')`) is **invalid**. Further investigation confirmed the Z-Library website itself no longer returns results for `id:` queries, causing the search to fail and correctly raise `BookNotFound`. This prevents discovery of the correct book page URL (with slug).
+
+
+
+### Pattern Update: External Library URL Construction Error (zlibrary `get_by_id`) - [2025-04-16 07:23:30]
+- **Note**: The previously attempted workaround (`client.search(q=f'id:{id}')`) is **invalid**. Further investigation confirmed the Z-Library website itself no longer returns results for `id:` queries, causing the search to fail and correctly raise `BookNotFound`.
+
 
 ### Pattern: MCP Server Implementation (CJS/SDK 1.8.0) - [2025-04-14 17:50:25]
 - **Context**: Documenting and comparing MCP server implementations, focusing on CJS projects using SDK v1.8.0.
@@ -51,6 +133,14 @@
 
 ### Pattern: Managed Python Virtual Environment for NPM Package - [2025-04-14 03:29:08]
 - **Context**: Providing a reliable Python dependency environment for a globally installed Node.js package (`zlibrary-mcp`).
+### Decision-RAGOutputFile-01 - [2025-04-23 23:30:58]
+- **Decision**: Redesign RAG processing tools (`process_document_for_rag`, combined `download_book_to_file`) to save processed text to a file (`./processed_rag_output/<original_filename>.processed.txt`) and return the `processed_file_path` instead of raw text content.
+- **Rationale**: Addresses critical user feedback ([Ref: SPARC Feedback 2025-04-23 23:26:20]) regarding agent instability caused by context overload from large text returns. Saving to file provides a stable and scalable mechanism for agents to access processed content.
+- **Alternatives Considered**: Returning truncated text (loses data), streaming text (complex agent handling), keeping original design (unstable).
+- **Implementation**: Modify Python bridge (`lib/python-bridge.py`) to handle file saving. Update tool schemas and return values in Node.js layer (`lib/zlibrary-api.ts`, `src/index.ts`). Update architecture docs.
+- **Related**: Pattern-RAGPipeline-FileOutput-01, Intervention [2025-04-23 23:26:50], `docs/architecture/rag-pipeline.md` (v2), `docs/architecture/pdf-processing-integration.md` (v2)
+
+
 - **Problem**: Global Python installations are inconsistent; relying on `PATH` or global `pip` is fragile.
 - **Solution**: Automate the creation and management of a dedicated Python virtual environment (`venv`) within a user-specific cache directory during a post-install script or first run. Install required Python packages (`zlibrary`) into this venv. Explicitly use the absolute path to the venv's Python interpreter when executing Python scripts from Node.js (`python-shell` or `child_process`).
 - **Components**: New setup script/logic, `lib/zlibrary-api.js` (modified to use venv path).
@@ -59,6 +149,34 @@
 
 # Decision Log
 <!-- Entries below should be added reverse chronologically (newest first) -->
+### Decision-RAGOutputFile-01 - [2025-04-23 23:29:31]
+- **Decision**: Modify RAG processing tools (`process_document_for_rag`, `download_book_to_file` with `process_for_rag: true`) to save extracted text content to a file and return the file path (`processed_file_path`) instead of the raw text content.
+- **Rationale**: Addresses critical feedback ([Ref: SPARC Feedback 2025-04-23 23:26:20]) regarding agent instability caused by context overload when handling large amounts of raw text returned by the tools. Returning a file path is more scalable and robust.
+- **Save Location**: `./processed_rag_output/` (relative to workspace root).
+- **Filename Convention**: `<original_filename>.processed.<format_extension>` (e.g., `book.epub.processed.txt`).
+- **Default Format**: `.txt`.
+- **Error Handling**: File save errors are explicitly handled and reported; raw text is not returned on failure.
+- **Alternatives Considered**: Returning truncated text (lossy), streaming text (complex implementation), increasing agent context limits (external dependency).
+- **Implementation**: Update tool schemas, Node.js handlers (`lib/zlibrary-api.ts`), Python bridge (`lib/python-bridge.py` to add saving logic), and architecture documents.
+- **Related**: Pattern-RAGPipeline-FileOutput-01, `docs/architecture/rag-pipeline.md` (v2), `docs/architecture/pdf-processing-integration.md` (v2), ActiveContext [2025-04-23 23:29:31]
+
+
+### Decision-SearchFirstIDLookup-01 - [2025-04-16 18:14:19]
+- **Decision**: Specify the 'Search-First' internal ID lookup strategy as requested by the user. This involves using internal search (query=ID) to find the book page URL, then fetching and parsing that page using `httpx` and `BeautifulSoup`.
+- **Rationale**: User explicitly requested this strategy despite known risks (search unreliability) documented in previous Memory Bank entries ([2025-04-16 07:27:22]). This specification fulfills the user's request.
+- **Alternatives Considered**: Using the previously implemented internal 404-handling strategy (already exists), further debugging external library (deemed unreliable).
+- **Implementation**: Specification generated in `docs/search-first-id-lookup-spec.md`. Includes pseudocode for `_internal_search`, `_internal_get_book_details_by_id`, caller modifications, exceptions, and TDD anchors.
+- **Related**: `docs/search-first-id-lookup-spec.md`, ActiveContext [2025-04-16 18:13:31]
+
+
+### Decision-InternalIDLookupURL-01 - [2025-04-16 08:10:00]
+- **Decision**: For internal ID lookup implementation, use the URL pattern `https://<domain>/book/ID`. Explicitly handle the expected 404 response as the primary failure mode ('Book Not Found'). Use `httpx` for fetching. Add `httpx` to `requirements.txt`.
+- **Rationale**: Fetching `/book/ID` confirmed to return 404 (missing slug). Searching for the slug via `id:` search is non-functional on the external site. General search is unreliable. This approach accepts the limitation and builds handling around the expected 404. `httpx` is a modern, robust async HTTP client suitable for scraping.
+- **Alternatives Considered**: Attempting slug guessing (unreliable), complex search heuristics (brittle), relying solely on external library (non-functional).
+- **Implementation**: Add `_internal_get_book_details_by_id` function in `python_bridge.py` using `httpx` and 404 handling. Update `requirements.txt`.
+- **Related**: Pattern-InternalIDScraper-01, Issue-BookNotFound-IDLookup-02, ActiveContext [2025-04-16 08:10:00]
+
+
 ### Decision-IDLookupStrategy-01 - [2025-04-15 23:12:00]
 - **Decision**: Adopt a sequential strategy to resolve the ID lookup `ParseError`: 1. Briefly search for alternative libraries. 2. If none found, attempt to Fork & Fix the existing `zlibrary` library (targeting URL construction/parsing). 3. If Fork & Fix fails, implement internal web scraping/parsing functions.
 - **Rationale**: The previous workaround (`client.search(q='id:...')`) also failed with `ParseError`, confirming a deeper issue within the external library affecting both `get_by_id` and ID-based searches. Fork & Fix offers potential for leveraging existing code with moderate effort. Internal implementation provides full control but requires higher effort and maintenance.
@@ -161,11 +279,93 @@
 
 
 
+### Task: Debug `BookNotFound` Error in Forked `zlibrary` Library - [2025-04-16 07:27:22]
+- **Status**: Complete.
+- **Details**: Added logging to `zlibrary` logger, `libasync.py`, and `abs.py`. Used `fetcher` tool to check direct website response and analyzed logs from `use_mcp_tool` call after enabling logger. Confirmed root cause: Z-Library website search (e.g., `/s/id:3433851?exact=1`) returns a standard search page with 'nothing has been found'. This prevents the library from discovering the correct book page URL (which includes a slug, e.g., `/book/ID/slug`). The library correctly parses the 'not found' response and raises `BookNotFound`. The issue is external website behavior, invalidating the previous `search(id:...)` workaround.
+- **Related**: Issue-BookNotFound-IDLookup-02, ActiveContext [2025-04-16 07:27:22]
+
+
 - **Related**: Pattern-ManagedVenv-01, Issue-GlobalExecFail-01
 - **Specification**: See SpecPseudo MB entry [2025-04-14 03:31:01]
 
 # Progress
 <!-- Entries below should be added reverse chronologically (newest first) -->
+### Task: RAG Pipeline (EPUB/TXT) - [2025-04-23 23:31:58]
+- **Status**: Halted (Requires Redesign).
+- **Details**: Integration verification (Task 2) halted due to critical design flaw identified by user ([Ref: SPARC Feedback 2025-04-23 23:26:20]). RAG tools must be redesigned to save processed output to file and return path, instead of returning raw text. Architecture redesign completed ([Ref: Architect Completion 2025-04-23 23:30:58]). Awaiting specification update. Original TDD complete ([Ref: GlobalContext Progress 2025-04-14 12:58:00]).
+- **Related**: Decision-RAGOutputFile-01, Pattern-RAGPipeline-FileOutput-01, Intervention [2025-04-23 23:26:50]
+
+### Task: RAG Pipeline (PDF) - [2025-04-23 23:31:58]
+- **Status**: Halted (Requires Redesign).
+- **Details**: Integration verification (Task 3) halted due to critical design flaw identified by user ([Ref: SPARC Feedback 2025-04-23 23:26:20]). RAG tools must be redesigned to save processed output to file and return path. Architecture redesign completed ([Ref: Architect Completion 2025-04-23 23:30:58]). Awaiting specification update. Original TDD complete ([Ref: GlobalContext Progress 2025-04-14 14:35:51]).
+- **Related**: Decision-RAGOutputFile-01, Pattern-RAGPipeline-FileOutput-01, Intervention [2025-04-23 23:26:50]
+
+
+### Task: Search-First ID Lookup (TDD Refactor Phase) - [2025-04-16 18:49:56]
+- **Status**: Complete.
+- **Details**: Refactored `lib/python_bridge.py` (clarity, DRY, consistency). Verified with `pytest` and `npm test` (all passing).
+### Task: Debug REG-001 (Tool Call Regression) - [2025-04-23 22:12:51]
+- **Status**: Complete.
+- **Details**: Resolved 'Invalid tool name type' error by correcting tool name key usage (`name` vs `tool_name`) in `src/index.ts`. Resolved subsequent Python `TypeError` by fixing argument serialization/passing between Node.js (`src/lib/zlibrary-api.ts`) and Python (`lib/python_bridge.py`). Updated Jest tests (`__tests__/zlibrary-api.test.js`) to match correct argument structure. Verified with manual tool calls and `npm test`.
+- **Related**: Issue REG-001, ActiveContext [2025-04-23 22:12:51]
+
+
+- **Related**: ActiveContext [2025-04-16 18:49:56]
+
+
+
+### Task: Search-First ID Lookup (TDD Green Phase) - [2025-04-16 18:40:05]
+- **Status**: Complete.
+- **Details**: Implemented Search-First strategy in `lib/python_bridge.py` per spec. Added `pytest-asyncio` and fixed related Python test issues. Python and Node tests pass.
+- **Related**: `docs/search-first-id-lookup-spec.md`, ActiveContext [2025-04-16 18:40:05]
+
+
+
+### Task: Search-First ID Lookup (Red Phase) - [2025-04-16 18:21:19]
+- **Status**: Red Phase Complete.
+- **Details**: Added 13 xfail tests to `__tests__/python/test_python_bridge.py` covering `_internal_search` and modified `_internal_get_book_details_by_id` functions per `docs/search-first-id-lookup-spec.md`. Added dummy exceptions/functions to allow test collection. Verified xfail status via pytest.
+- **Related**: `docs/search-first-id-lookup-spec.md`, ActiveContext [2025-04-16 18:21:19]
+
+
+
+### Task: Verify Internal ID Lookup Integration - [2025-04-16 18:08:00]
+- **Status**: Complete.
+- **Details**: Manually verified `get_book_by_id`, `get_download_info`, `download_book_to_file` consistently return 'Book ID ... not found.' error for 404 scenarios (valid/invalid IDs) using internal `httpx` logic. `npm test` passes.
+- **Related**: ActiveContext [2025-04-16 18:08:00]
+
+
+
+### Task: Internal ID Lookup (TDD Refactor Phase) - [2025-04-16 08:42:01]
+- **Status**: Complete.
+- **Details**: Refactored `_internal_get_book_details_by_id` in `lib/python_bridge.py` for clarity (renamed exception vars, added comments for placeholder selectors, removed redundant response check). Verified with `pytest` (PASS: 16 skipped, 13 xfailed, 4 xpassed) and `npm test` (PASS: 4 suites, 47 tests, 11 todo).
+- **Related**: `docs/internal-id-lookup-spec.md`, ActiveContext [2025-04-16 08:42:01]
+
+
+
+### Task: Internal ID Lookup (TDD Green Phase) - [2025-04-16 08:38:32]
+- **Status**: Complete.
+- **Details**: Implemented `_internal_get_book_details_by_id` in `lib/python_bridge.py` and updated callers (`get_by_id`, `get_download_info`) per spec. Fixed Python test errors (venv path, missing deps, exception logic, test assertions). Python & Node tests pass.
+- **Related**: `docs/internal-id-lookup-spec.md`, ActiveContext [2025-04-16 08:38:32]
+
+
+### Task: Internal ID Lookup (Red Phase) - [2025-04-16 08:18:43]
+- **Status**: Red Phase Complete.
+- **Details**: Added failing/xfail tests to `__tests__/python/test_python_bridge.py` covering `_internal_get_book_details_by_id` function (404, HTTP errors, network errors, parsing) and caller modifications (`get_by_id`, `get_download_info`). Added `httpx` dependency to `requirements.txt`.
+- **Related**: `docs/internal-id-lookup-spec.md`, ActiveContext [2025-04-16 08:18:43]
+
+
+### Task: Debug `BookNotFound` Error in Forked `zlibrary` Library - [2025-04-16 07:23:30]
+- **Status**: Complete.
+- **Details**: Added logging to `zlibrary` logger, `libasync.py`, and `abs.py`. Used `fetcher` tool to check direct website response and analyzed logs from `use_mcp_tool` call after enabling logger. Confirmed root cause: Z-Library website search (e.g., `/s/id:3433851?exact=1`) returns a standard search page with 'nothing has been found'. The library correctly parses this, finds no results, and raises `BookNotFound`. The issue is external website behavior, invalidating the previous `search(id:...)` workaround.
+- **Related**: Issue-BookNotFound-IDLookup-02, ActiveContext [2025-04-16 07:23:30]
+
+
+### Task: Fix `zlibrary` ID Lookup Bugs - [2025-04-16 00:03:00]
+- **Status**: Complete.
+- **Details**: Applied fixes to `zlibrary/src/zlibrary/libasync.py` and `zlibrary/src/zlibrary/abs.py` based on the provided strategy. `get_by_id` now uses search. `SearchPaginator.parse_page` now handles potential direct book page results from `id:` searches.
+- **Related**: Issue-ParseError-IDLookup-01, Decision-IDLookupStrategy-01, ActiveContext [2025-04-16 00:02:36]
+
+
 ### Task: Locate `zlibrary` Source Code - [2025-04-15 23:14:52]
 - **Status**: Complete.
 - **Details**: Successfully located the source code repository for the external `zlibrary` Python library (v1.0.2) using `pip show zlibrary`. The repository is at `https://github.com/sertraline/zlibrary`.

@@ -1,6 +1,83 @@
 # Tester (TDD) Specific Memory
 <!-- Entries below should be added reverse chronologically (newest first) -->
 ## Test Execution Results
+### Test Execution: Regression (Post Arg Fix - npm test) - [2025-04-23 17:55:38]
+- **Trigger**: Manual (`npm test`) after fixing `callPythonFunction` signature in `src/lib/python-bridge.ts`.
+- **Outcome**: PASS / **Summary**: 4 suites passed, 47 tests passed, 11 todo.
+- **Failed Tests**: None
+- **Coverage Change**: Stable (See report)
+- **Notes**: Confirmed no regressions introduced by the argument parsing fix in the Node.js bridge.
+
+
+### Test Execution: Unit (Post Arg Fix - pytest) - [2025-04-23 17:55:17]
+- **Trigger**: Manual (`.../python -m pytest ...`) after fixing `callPythonFunction` signature in `src/lib/python-bridge.ts`.
+- **Outcome**: PASS / **Summary**: 38 passed, 6 skipped, 7 xfailed, 4 xpassed.
+- **Failed Tests**: None
+- **Coverage Change**: N/A
+- **Notes**: Confirmed Python code remains valid after Node.js bridge argument fix.
+
+
+### Test Execution: Regression (Search-First ID Lookup Refactor - npm test) - [2025-04-16 18:49:56]
+- **Trigger**: Manual (`npm test`) after refactoring `lib/python_bridge.py` and fixing Python tests.
+- **Outcome**: PASS / **Summary**: 4 suites passed, 47 tests passed, 11 todo.
+- **Failed Tests**: None
+- **Coverage Change**: N/A
+- **Notes**: Confirmed Python refactoring did not introduce regressions in the Node.js test suite.
+
+
+
+### Test Execution: Unit (Search-First ID Lookup Refactor - pytest) - [2025-04-16 18:49:37]
+- **Trigger**: Manual (`/home/rookslog/.cache/zlibrary-mcp/zlibrary-mcp-venv/bin/python -m pytest __tests__/python/test_python_bridge.py`) after refactoring `lib/python_bridge.py` and fixing test assertions.
+- **Outcome**: PASS / **Summary**: 38 passed, 6 skipped, 7 xfailed, 4 xpassed.
+- **Failed Tests**: None
+- **Coverage Change**: N/A
+- **Notes**: Confirmed refactoring and test fixes were successful.
+
+
+
+### Test Execution: Unit (Search-First ID Lookup - Red Phase) - [2025-04-16 18:21:19]
+- **Trigger**: Manual (`/home/rookslog/.cache/zlibrary-mcp/zlibrary-mcp-venv/bin/python -m pytest __tests__/python/test_python_bridge.py`) after adding xfail tests and dummy exceptions/functions.
+- **Outcome**: PASS (XFAIL/XPASS) / **Summary**: 40 skipped, 13 xfailed, 4 xpassed.
+- **Failed Tests**: None (All relevant new tests are xfailed as expected).
+- **Coverage Change**: N/A
+- **Notes**: Confirmed collection error resolved and new tests for `_internal_search` and modified `_internal_get_book_details_by_id` are collected and marked xfailed. Red phase established.
+
+
+
+### Test Execution: Regression (Internal ID Lookup Refactor - npm test) - [2025-04-16 08:42:01]
+- **Trigger**: Manual (`npm test`) after refactoring `lib/python_bridge.py`.
+- **Outcome**: PASS / **Summary**: 4 suites passed, 47 tests passed, 11 todo.
+- **Failed Tests**: None
+- **Coverage Change**: N/A
+- **Notes**: Confirmed Python refactoring did not introduce regressions in the Node.js test suite.
+
+
+
+### Test Execution: Unit (Internal ID Lookup Refactor - pytest) - [2025-04-16 08:41:47]
+- **Trigger**: Manual (`/home/rookslog/.cache/zlibrary-mcp/zlibrary-mcp-venv/bin/python -m pytest __tests__/python/test_python_bridge.py`) after refactoring `lib/python_bridge.py`.
+- **Outcome**: PASS / **Summary**: 16 skipped, 13 xfailed, 4 xpassed.
+- **Failed Tests**: None
+- **Coverage Change**: N/A
+- **Notes**: Confirmed refactoring did not introduce regressions. Test results consistent with pre-refactor state.
+
+
+
+### Test Execution: Regression Fix Verification (Full Suite - venv-manager pip flags) - [2025-04-16 07:59:29]
+- **Trigger**: Manual (`npm test`) after fixing `__tests__/venv-manager.test.js`.
+- **Outcome**: PASS / **Summary**: 4 suites passed, 47 tests passed, 11 todo.
+- **Failed Tests**: None
+- **Coverage Change**: N/A (See report)
+- **Notes**: Confirmed fixes for `venv-manager.test.js` did not introduce regressions.
+
+
+### Test Execution: Regression Fix Verification (Specific Suite - venv-manager pip flags) - [2025-04-16 07:59:13]
+- **Trigger**: Manual (`npm test __tests__/venv-manager.test.js`) after applying fixes for pip install flags.
+- **Outcome**: PASS / **Summary**: 1 suite passed, 4 tests passed, 11 todo.
+- **Failed Tests**: None
+- **Coverage Change**: N/A (See report)
+- **Notes**: Confirmed fixes resolved the assertion errors related to missing pip install flags.
+
+
 ### Test Execution: Regression (ID Lookup Refactor - npm test) - [2025-04-15 22:43:27]
 - **Trigger**: Manual (`npm test`) after refactoring Python bridge and fixing Python tests.
 - **Outcome**: PASS / **Summary**: 4 suites passed, 47 tests passed, 11 todo (based on previous logs).
@@ -132,6 +209,39 @@
 - **Notes**: Failures are expected as implementation is missing.
 
 ## TDD Cycles Log
+### TDD Cycle: Search-First ID Lookup - [2025-04-16 18:49:56]
+- **Red**: Added 13 xfail tests to `__tests__/python/test_python_bridge.py` covering `_internal_search` (success, no results, parse/fetch errors) and modified `_internal_get_book_details_by_id` (success, search fail, URL extract fail, book page fetch/parse fail, missing details). Added mock HTML snippets. Added dummy exceptions/functions to allow collection. / Test File: `__tests__/python/test_python_bridge.py`
+- **Green**: Implemented `_internal_search` and modified `_internal_get_book_details_by_id` in `lib/python_bridge.py` using `httpx` and `BeautifulSoup` per spec. Updated callers (`get_by_id`, `get_download_info`, `main`). Added `pytest-asyncio` and fixed Python tests (async decorators, missing args, mock logic, assertions). / Code File: `lib/python_bridge.py`
+- **Refactor**: Refactored `lib/python_bridge.py`: added comments for placeholder selectors, refined exception variable names, extracted HTTP headers/timeouts to constants, updated `main` to handle `domain` arg explicitly. Fixed test assertions broken by error message changes. / Files Changed: `lib/python_bridge.py`, `__tests__/python/test_python_bridge.py`
+- **Outcome**: Refactor phase complete. Code improved for clarity, DRYness, and consistency. All Python (`pytest`) and Node.js (`npm test`) tests pass (relevant tests passing, xfailed tests remain xfailed).
+
+
+
+### TDD Cycle: Search-First ID Lookup - [2025-04-16 18:21:19]
+- **Red**: Added 13 xfail tests to `__tests__/python/test_python_bridge.py` covering `_internal_search` (success, no results, parse/fetch errors) and modified `_internal_get_book_details_by_id` (success, search fail, URL extract fail, book page fetch/parse fail, missing details). Added mock HTML snippets. Added dummy exceptions/functions to allow collection. / Test File: `__tests__/python/test_python_bridge.py`
+- **Green**: (Pending)
+- **Refactor**: (Pending)
+- **Outcome**: Red phase complete. Tests are xfailing as expected. Ready for Green phase.
+- **Files Changed**: `__tests__/python/test_python_bridge.py`
+
+
+
+### TDD Cycle: Internal ID Lookup (Scraping) - [2025-04-16 08:42:01]
+- **Red**: Added 14 xfail tests to `__tests__/python/test_python_bridge.py` covering `_internal_get_book_details_by_id` (404, HTTP errors, network errors, parsing success/failure/missing elements) and caller modifications (`get_by_id`, `get_download_info` calls and error translation). Added `async_mock_httpx_client` fixture. Added `httpx` to `requirements.txt`. / Test File: `__tests__/python/test_python_bridge.py`
+- **Green**: Implemented `_internal_get_book_details_by_id` using `httpx`, handling 404, other HTTP errors, network errors, and basic 200 OK parsing (with placeholder selectors). Updated callers (`get_by_id`, `get_download_info`) to use the internal function and translate exceptions. Fixed related Python test issues (venv path, missing deps, exception logic, assertions). / Code File: `lib/python_bridge.py`
+- **Refactor**: Refactored `_internal_get_book_details_by_id` for clarity: renamed exception variables, added comments clarifying placeholder selectors, removed redundant `response is None` check. / Files Changed: `lib/python_bridge.py`
+- **Outcome**: Refactor phase complete. Code improved for clarity. All Python (`pytest`) and Node.js (`npm test`) tests pass (relevant tests are passing, xfailed tests remain xfailed as expected).
+
+
+
+### TDD Cycle: Internal ID Lookup (Scraping) - [2025-04-16 08:18:43]
+- **Red**: Added 14 xfail tests to `__tests__/python/test_python_bridge.py` covering `_internal_get_book_details_by_id` (404, HTTP errors, network errors, parsing success/failure/missing elements) and caller modifications (`get_by_id`, `get_download_info` calls and error translation). Added `async_mock_httpx_client` fixture. Added `httpx` to `requirements.txt`. / Test File: `__tests__/python/test_python_bridge.py`
+- **Green**: (Pending)
+- **Refactor**: (Pending)
+- **Outcome**: Red phase complete. Ready for Green phase.
+- **Files Changed**: `__tests__/python/test_python_bridge.py`, `requirements.txt`
+
+
 <!-- Append TDD cycle outcomes using the format below -->
 ### TDD Cycle: ID Lookup Workaround (Refactor) - [2025-04-15 22:43:41]
 - **Red**: N/A (Refactor phase)
@@ -197,12 +307,67 @@
 
 ## Test Fixtures
 <!-- Append new fixtures using the format below -->
+### Fixture: async_mock_httpx_client - [2025-04-16 08:18:43]
+- **Location**: `__tests__/python/test_python_bridge.py`
+- **Description**: Mocks `httpx.AsyncClient` and its `get` method, returning a mock `httpx.Response`. Allows configuration of response status code, text, and `raise_for_status` behavior.
+- **Usage**: Used in tests for `_internal_get_book_details_by_id` to simulate HTTP responses.
+- **Dependencies**: `pytest`, `unittest.mock.AsyncMock`
+
+
 
 ## Test Coverage Summary
 <!-- Update coverage summary using the format below -->
 
 ## Test Plans (Driving Implementation)
 <!-- Append new test plans using the format below -->
+### Test Plan: Search-First ID Lookup - [2025-04-16 18:21:19]
+- **Objective**: Drive implementation of the 'Search-First' internal ID lookup strategy (`_internal_search`, modified `_internal_get_book_details_by_id`) and its integration into callers (`get_by_id`, `get_download_info`).
+- **Scope**: `lib/python_bridge.py`, `__tests__/python/test_python_bridge.py`.
+- **Test Cases**:
+    - Case 1 (XFail): `_internal_search` success (returns URL). / Status: Red
+    - Case 2 (XFail): `_internal_search` no results (returns []). / Status: Red
+    - Case 3 (XFail): `_internal_search` parsing error (raises `InternalParsingError`). / Status: Red
+    - Case 4 (XFail): `_internal_search` HTTP error (raises `InternalFetchError`). / Status: Red
+    - Case 5 (XFail): `_internal_search` network error (raises `InternalFetchError`). / Status: Red
+    - Case 6 (XFail): `_internal_get_book_details_by_id` success flow (mocks search & book page fetch). / Status: Red
+    - Case 7 (XFail): `_internal_get_book_details_by_id` handles search failure (fetch error) (raises `InternalBookNotFoundError`). / Status: Red
+    - Case 8 (XFail): `_internal_get_book_details_by_id` handles search failure (empty results) (raises `InternalBookNotFoundError`). / Status: Red
+    - Case 9 (XFail): `_internal_get_book_details_by_id` handles URL extraction failure (raises `InternalParsingError`). / Status: Red
+    - Case 10 (XFail): `_internal_get_book_details_by_id` handles book page fetch HTTP error (raises `InternalFetchError`). / Status: Red
+    - Case 11 (XFail): `_internal_get_book_details_by_id` handles book page fetch network error (raises `InternalFetchError`). / Status: Red
+    - Case 12 (XFail): `_internal_get_book_details_by_id` handles book page parsing error (raises `InternalParsingError`). / Status: Red
+    - Case 13 (XFail): `_internal_get_book_details_by_id` handles missing details (title) (raises `InternalParsingError`). / Status: Red
+    - Case 14 (XFail): `_internal_get_book_details_by_id` handles missing details (download URL) (raises `InternalParsingError`). / Status: Red
+    - Case 15 (XFail): `get_by_id` calls `_internal_get_book_details_by_id`. / Status: Red
+    - Case 16 (XFail): `get_download_info` calls `_internal_get_book_details_by_id`. / Status: Red
+    - Case 17 (XFail): `get_by_id` translates `InternalBookNotFoundError` to `ValueError`. / Status: Red
+    - Case 18 (XFail): `get_download_info` translates `InternalBookNotFoundError` to `ValueError`. / Status: Red
+    - Case 19 (XFail): `get_by_id` translates `InternalParsingError`/`InternalFetchError`/`RuntimeError` to `RuntimeError`. / Status: Red
+    - Case 20 (XFail): `get_download_info` translates `InternalParsingError`/`InternalFetchError`/`RuntimeError` to `RuntimeError`. / Status: Red
+- **Related Requirements**: `docs/search-first-id-lookup-spec.md`, GlobalContext Decision-SearchFirstIDLookup-01
+
+
+
+### Test Plan: Internal ID Lookup (Scraping) - [2025-04-16 08:18:43]
+- **Objective**: Drive implementation of internal ID-based book lookup via web scraping (`_internal_get_book_details_by_id`) and its integration into callers (`get_by_id`, `get_download_info`).
+- **Scope**: `lib/python_bridge.py`, `__tests__/python/test_python_bridge.py`, `requirements.txt`.
+- **Test Cases**:
+    - Case 1 (XFail): `_internal_get_book_details_by_id` handles 404 response (raises `InternalBookNotFoundError`). / Status: Red
+    - Case 2 (XFail): `_internal_get_book_details_by_id` handles other HTTP errors (500, 403, etc.) (raises `RuntimeError`). / Status: Red
+    - Case 3 (XFail): `_internal_get_book_details_by_id` handles network errors (`httpx.RequestError`) (raises `RuntimeError`). / Status: Red
+    - Case 4 (XFail): `_internal_get_book_details_by_id` parses valid 200 OK response. / Status: Red
+    - Case 5 (XFail): `_internal_get_book_details_by_id` handles parsing error on 200 OK (invalid HTML) (raises `InternalParsingError`). / Status: Red
+    - Case 6 (XFail): `_internal_get_book_details_by_id` handles missing elements on 200 OK (raises `InternalParsingError`). / Status: Red
+    - Case 7 (XFail): `get_by_id` calls `_internal_get_book_details_by_id`. / Status: Red
+    - Case 8 (XFail): `get_download_info` calls `_internal_get_book_details_by_id`. / Status: Red
+    - Case 9 (XFail): `get_by_id` translates `InternalBookNotFoundError` to `ValueError`. / Status: Red
+    - Case 10 (XFail): `get_download_info` translates `InternalBookNotFoundError` to `ValueError`. / Status: Red
+    - Case 11 (XFail): `get_by_id` translates `InternalParsingError`/`RuntimeError` to `RuntimeError`. / Status: Red
+    - Case 12 (XFail): `get_download_info` translates `InternalParsingError`/`RuntimeError` to `RuntimeError`. / Status: Red
+    - Case 13 (Implicit): `venv-manager.js`: `installDependencies` installs `httpx` (via `requirements.txt`). / Status: Green (Covered by existing tests)
+- **Related Requirements**: `docs/internal-id-lookup-spec.md`, GlobalContext Pattern-InternalIDScraper-01, Decision-InternalIDLookupURL-01
+
+
 
 ### Test Plan: ID Lookup Workaround (Search-Based) - [2025-04-15 22:11:24]
 - **Objective**: Drive implementation of the search-based workaround for `get_book_by_id` and `get_download_info` in `lib/python_bridge.py`.

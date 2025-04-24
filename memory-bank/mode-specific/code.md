@@ -1,5 +1,34 @@
 # Auto-Coder Specific Memory
 <!-- Entries below should be added reverse chronologically (newest first) -->
+### Implementation: Search-First ID Lookup (TDD Green Phase) - [2025-04-16 18:40:05]
+- **Approach**: Implemented internal search (`_internal_search`) and modified internal lookup (`_internal_get_book_details_by_id`) in `lib/python_bridge.py` using `httpx`/`BeautifulSoup` per spec (`docs/search-first-id-lookup-spec.md`). Updated callers (`get_by_id`, `get_download_info`, `main`) to use new logic and translate exceptions.
+- **Key Files Modified/Created**:
+  - `lib/python_bridge.py`: Added imports (`urljoin`), exceptions (`InternalFetchError`), functions (`_internal_search`), modified `_internal_get_book_details_by_id`, `get_by_id`, `get_download_info`, `main`.
+  - `__tests__/python/test_python_bridge.py`: Added `@pytest.mark.asyncio` decorators, fixed missing `domain` args, corrected mock logic/assertions, removed `xfail` markers, fixed warnings.
+  - `requirements-dev.txt`: Added `pytest-asyncio`.
+- **Notes**: Required multiple iterations to fix Python tests. Issues included missing `pytest-asyncio` plugin, missing `@pytest.mark.asyncio` decorators, incorrect mock setup for nested async calls (`_internal_search` within `_internal_get_book_details_by_id`), incorrect `assert_awaited_once_with` arguments, and incorrect `pytest.raises` match patterns. Used `write_to_file` for test file due to repeated `apply_diff` failures. Python tests related to this feature now pass. Node tests (`npm test`) also pass.
+- **Related**: `docs/search-first-id-lookup-spec.md`, ActiveContext [2025-04-16 18:40:05], GlobalContext [2025-04-16 18:40:05]
+
+
+
+### Implementation: Internal ID Lookup (TDD Green Phase) - [2025-04-16 08:38:32]
+- **Approach**: Implemented internal web scraping for ID lookups in `lib/python_bridge.py` as per spec `docs/internal-id-lookup-spec.md`. Added `_internal_get_book_details_by_id` using `httpx` to fetch `/book/ID`, handle expected 404s (`InternalBookNotFoundError`), and parse 200 OK (unexpected case) with placeholder selectors. Modified callers `get_by_id` and `get_download_info` to use the new function and translate exceptions (`InternalBookNotFoundError` -> `ValueError`, `InternalParsingError`/`RuntimeError` -> `RuntimeError`).
+- **Key Files Modified/Created**:
+  - `lib/python_bridge.py`: Added imports (`httpx`), exceptions (`InternalBookNotFoundError`, `InternalParsingError`), function `_internal_get_book_details_by_id`, modified `get_by_id`, `get_download_info`.
+  - `__tests__/python/test_python_bridge.py`: Removed old `*_workaround_*` tests, un-xfail'd new internal lookup tests, corrected assertions for error messages.
+- **Notes**: Required multiple attempts to run Python tests due to incorrect venv path assumption (needed `/home/rookslog/.cache/...` path from `venv-manager.ts`, not `./venv`) and missing dependencies (`pytest`, `httpx`) in venv. Manually installed dev requirements and `httpx` via pip as a temporary measure. Fixed exception handling logic in `_internal_get_book_details_by_id` to allow `InternalBookNotFoundError` to propagate correctly. Updated test assertions to match new error messages. Python tests (relevant ones) and Node tests now pass.
+- **Related**: `docs/internal-id-lookup-spec.md`, ActiveContext [2025-04-16 08:38:32], GlobalContext [2025-04-16 08:38:32], Feedback [2025-04-16 08:32:47]
+
+
+### Implementation: Fix `zlibrary` ID Lookup Bugs - [2025-04-16 00:03:16]
+- **Approach**: Applied fixes directly to the external `sertraline/zlibrary` source code within the `zlibrary/` subdirectory based on the strategy outlined in the task and Memory Bank (Decision-IDLookupStrategy-01, ActiveContext [2025-04-15 23:18:25]).
+- **Key Files Modified/Created**:
+  - `zlibrary/src/zlibrary/libasync.py`: Modified `get_by_id` to use `search(q=f'id:{id}', exact=True, count=1)` instead of constructing the URL directly.
+  - `zlibrary/src/zlibrary/abs.py`: Modified `SearchPaginator.parse_page` to detect and handle potential direct book page results from `id:` searches by attempting to parse using a new helper method `_parse_book_page_soup`. Extracted parsing logic from `BookItem.fetch` into `_parse_book_page_soup` and updated `fetch` to use the helper. Removed redundant parsing code from `fetch`.
+- **Notes**: The fixes address the `ParseError` issues caused by incorrect URL construction in `get_by_id` and unexpected HTML structure in `id:` search results. Required multiple `apply_diff` attempts due to partial application failures.
+- **Related**: Issue-ParseError-IDLookup-01, Decision-IDLookupStrategy-01, ActiveContext [2025-04-16 00:02:36], GlobalContext [2025-04-16 00:03:00]
+
+
 ### Implementation: ID Lookup Workaround (TDD Green Phase) - [2025-04-15 22:39:35]
 - **Approach**: Implemented search-based workaround for `get_by_id` and `get_download_info` in `lib/python_bridge.py` to address `ParseError` from faulty `client.get_by_id`. Followed TDD Green phase: modified code minimally to make existing xfailed tests pass.
 - **Key Files Modified/Created**:
@@ -138,6 +167,20 @@
   - `package.json`: Added `env-paths` dependency.
 
 ## Dependencies Log
+
+
+### Dependency: pytest-asyncio - [2025-04-16 18:40:05]
+- **Version**: 0.26.0 (Installed via pip)
+- **Purpose**: Pytest plugin to handle async test functions.
+- **Used by**: `__tests__/python/test_python_bridge.py`
+- **Config notes**: Added to `requirements-dev.txt`. Required `@pytest.mark.asyncio` decorator on async tests.
+
+### Dependency: httpx - [2025-04-16 08:38:32]
+- **Version**: 0.28.1 (Installed via pip)
+- **Purpose**: Modern asynchronous HTTP client for making requests in `_internal_get_book_details_by_id`.
+- **Used by**: `lib/python_bridge.py`
+- **Config notes**: Added to `requirements.txt` in Red phase. Manually installed during Green phase due to test failure.
+
 ### Dependency: PyMuPDF - [2025-04-14 14:25:00]
 - **Version**: (Installed via pip from requirements.txt)
 - **Purpose**: Python library for PDF text extraction (`fitz`). Chosen for accuracy and performance (Decision-PDFLibraryChoice-01).

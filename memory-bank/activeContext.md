@@ -1,5 +1,76 @@
 # Active Context
 <!-- Entries below should be added reverse chronologically (newest first) -->
+[2025-04-23 23:40:42] - SPARC - Received Spec/Pseudo Result (RAG Redesign) - Spec/Pseudo mode updated `docs/rag-pipeline-implementation-spec.md` and `docs/pdf-processing-implementation-spec.md` to align with file output redesign. Proceeding to TDD Red phase. [See Spec/Pseudo Completion 2025-04-23 23:40:42]
+
+[2025-04-23 23:36:45] - SpecPseudo - Task Complete - Updated RAG implementation specifications (`docs/rag-pipeline-implementation-spec.md`, `docs/pdf-processing-implementation-spec.md`) to align with v2 File Output architecture. Modified tool schemas, Node.js pseudocode, Python bridge pseudocode (added `_save_processed_text`, updated `process_document`, `download_book`), and TDD anchors. Preparing completion.
+
+[2025-04-23 23:30:58] - SPARC - Received Architect Result (RAG Output Redesign) - Architect completed redesign. RAG tools will now save processed text to `./processed_rag_output/` and return `processed_file_path`. Architecture docs updated. Proceeding to delegate specification update. [See Architect Completion 2025-04-23 23:30:58]
+
+[2025-04-23 23:29:31] - Architect - Designing - Redesigned RAG pipeline output mechanism to save processed text to `./processed_rag_output/` and return file path instead of raw text, addressing context overload. Updated architecture docs.
+
+[2025-04-23 23:26:38] - SPARC - Intervention (RAG Design Flaw) - User identified critical flaw in RAG pipeline design: returning full text content instead of file path. Halted Task 2 & 3 integration verification. Preparing to delegate redesign to Architect. [See Feedback 2025-04-23 23:26:20]
+
+[2025-04-23 23:22:04] - SPARC - Received Integration Result (Task 2: RAG EPUB/TXT) - Verification partially blocked by ID lookup failure (RAG-VERIFY-BLK-01). Standalone EPUB processing confirmed working. Combined workflow blocked. TXT unverified. Proceeding to delegate Task 3 (PDF) integration.
+
+[2025-04-23 23:17:00] - Integration - RAG Verification Blocked - Attempted verification of RAG EPUB/TXT processing (Task 2). `download_book_to_file` failed for ID 1610135 due to underlying 'Search-First' ID lookup failure (`ValueError: Book ID ... not found`). Cannot download test files via ID. Verification of processing logic (`process_document_for_rag`) is blocked. Deferring ID lookup debugging per user instruction.
+
+
+[2025-04-23 22:12:51] - Debug - Resolved REG-001 - Fixed 'Invalid tool name type' error in `src/index.ts` by using 'name' key. Fixed subsequent Python `TypeError` by correcting argument passing in `src/lib/zlibrary-api.ts` (Node->Python bridge) and updating tests. Verified with manual tool calls and `npm test`.
+
+
+[2025-04-23 17:55:38] - TDD - Regression Test (Post Arg Fix) - Ran `npm test` after fixing `callPythonFunction` signature in `src/lib/python-bridge.ts`. Result: PASS (4 suites, 47 tests passed, 11 todo). Confirmed no regressions introduced by the fix.
+
+
+[2025-04-18 02:42:47] - SystemRefiner - Report Updated - Appended additional findings and proposals (9-12) focused on self-correction and reducing interventions to memory-bank/reports/system-refinement-report-20250418023659.md.
+
+[2025-04-18 02:38:04] - SystemRefiner - Report Generated - Analysis complete. Findings and proposals documented in memory-bank/reports/system-refinement-report-20250418023659.md.
+
+[2025-04-18 02:29:43] - SystemRefiner - Analysis Started - Completed reading feedback logs, core logs, .roomodes, and .clinerules-*. Analyzing data to identify patterns and propose improvements for SPARC system rules.
+
+[2025-04-16 18:49:56] - TDD - Refactor Phase (Search-First ID Lookup) - Completed. Refactored `lib/python_bridge.py`: added comments for placeholder selectors, refined exception variable names, extracted HTTP headers/timeouts to constants, updated `main` to handle `domain` arg explicitly. Fixed test assertions broken by error message changes. Verified with `pytest` (PASS: 38 passed, 6 skipped, 7 xfailed, 4 xpassed) and `npm test` (PASS: 4 suites, 47 tests, 11 todo).
+
+
+[2025-04-16 18:40:05] - Code - TDD Green Phase (Search-First ID Lookup) - Implemented `_internal_search` and modified `_internal_get_book_details_by_id` in `lib/python_bridge.py` per spec. Updated callers (`get_by_id`, `get_download_info`, `main`). Added `pytest-asyncio` and fixed Python tests (async decorators, missing args, mock logic, assertions). Python tests pass (relevant ones), Node tests pass (`npm test`).
+
+
+[2025-04-16 18:21:19] - TDD - Red Phase (Search-First ID Lookup) - Added 13 xfail tests to `__tests__/python/test_python_bridge.py` for `_internal_search` (success, no results, parse/fetch errors) and modified `_internal_get_book_details_by_id` (success, search fail, URL extract fail, book page fetch/parse fail, missing details). Added dummy exceptions/functions to allow collection. Verified tests collected and xfailed via pytest (40 skipped, 13 xfailed, 4 xpassed).
+
+[2025-04-16 18:13:31] - SpecPseudo - Generating - Created specification and pseudocode for 'Search-First' internal ID lookup strategy (per user request). Includes `_internal_search` and modified `_internal_get_book_details_by_id` using `httpx`/`BeautifulSoup`, exception handling, caller modifications, and TDD anchors. Acknowledged known risks regarding search reliability based on prior MB entries. Preparing to write to file and complete task.
+
+
+[2025-04-16 18:08:00] - Integration - Verified Internal ID Lookup - Manually verified get_book_by_id, get_download_info, download_book_to_file consistently return 'Book ID ... not found.' error for 404 scenarios (valid/invalid IDs) using internal httpx logic. npm test passes.
+
+
+[2025-04-16 08:42:01] - TDD - Refactor Phase (Internal ID Lookup) - Completed. Refactored `_internal_get_book_details_by_id` in `lib/python_bridge.py` for clarity (renamed exception vars, added comments for placeholder selectors, removed redundant response check). Verified with `pytest` (PASS: 16 skipped, 13 xfailed, 4 xpassed) and `npm test` (PASS: 4 suites, 47 tests, 11 todo). Preparing completion.
+
+
+[2025-04-16 08:38:32] - Code - TDD Green Phase (Internal ID Lookup) - Completed. Implemented `_internal_get_book_details_by_id` in `lib/python_bridge.py` using `httpx` and updated callers (`get_by_id`, `get_download_info`) per spec. Fixed Python test errors (incorrect venv path, missing deps `pytest`/`httpx`, exception handling logic, outdated test assertions). Python tests pass (relevant ones), Node tests pass. Preparing completion.
+
+
+[2025-04-16 08:18:43] - TDD - Red Phase (Internal ID Lookup) - Added failing/xfail tests to `__tests__/python/test_python_bridge.py` for `_internal_get_book_details_by_id` (404, HTTP errors, network errors, parsing success/failure/missing elements) and caller modifications (`get_by_id`, `get_download_info` calls and error translation). Added `httpx` to `requirements.txt`. No changes needed for `__tests__/venv-manager.test.js`.
+
+[2025-04-16 08:12:25] - SpecPseudo - Generating - Created specification and pseudocode for internal ID-based book lookup via direct web scraping (`_internal_get_book_details_by_id` in `lib/python_bridge.py`) using `httpx`, handling 404 as primary failure. Defined requirements, exceptions, caller modifications, dependencies (`httpx`), and TDD anchors. Preparing to write to `docs/internal-id-lookup-spec.md`.
+
+[2025-04-16 08:10:00] - Architect - Designing - Designed architecture for internal ID-based book lookup via direct web scraping in `lib/python_bridge.py`. Confirmed URL pattern `/book/ID` yields 404 (missing slug). Design uses `httpx`, `BeautifulSoup4`, handles 404 as primary failure, acknowledges scraping risks. See Decision-InternalIDLookupURL-01, Pattern-InternalIDScraper-01.
+
+[2025-04-16 07:59:29] - TDD - Regression Fix (venv-manager pip flags) - Updated 3 tests in __tests__/venv-manager.test.js to expect correct pip install flags (--no-cache-dir, --force-reinstall, --upgrade). Verified fix with specific suite (`npm test __tests__/venv-manager.test.js`) and full suite (`npm test`) runs.
+
+[2025-04-16 07:27:22] - Debug - Refined Diagnosis (BookNotFound ID Lookup) - User feedback highlighted that the previous conclusion was incomplete. While the `search(id:...)` workaround fails due to the website returning 'not found', the core issue is that this prevents the library from discovering the *correct* book page URL (which includes a slug, e.g., `/book/ID/slug`). The original direct fetch (`/book/ID`) failed due to the missing slug (404). The search workaround was intended to find the item containing the correct URL, but since the search itself yields no results externally, the slug cannot be obtained. Therefore, ID lookup is impossible with the current fork state due to external website limitations/changes.
+
+[2025-04-16 07:23:30] - Debug - Diagnosis Complete (BookNotFound ID Lookup) - Added logging to zlibrary logger, libasync.py, and abs.py. Used fetcher tool and analyzed logs from use_mcp_tool call. Confirmed root cause: Z-Library website search (e.g., /s/id:3433851?exact=1) returns a standard search page with 'nothing has been found'. The library correctly parses this, finds no results, and raises BookNotFound. The issue is external website behavior, not a library parsing bug for this path. Task complete.
+
+[2025-04-16 03:12:00] - Integration - Verified ParseError Fix (ID Lookup) - Confirmed original ParseError is resolved for get_book_by_id, get_download_info, download_book_to_file after switching to local editable install (-e ./zlibrary) and fixing AttributeError in local zlibrary/src/zlibrary/libasync.py. However, all ID tools now fail with BookNotFound due to the library's id: search method not finding books.
+
+[2025-04-16 01:37:07] - DevOps - Updated requirements.txt - Replaced PyPI zlibrary dependency with direct Git reference to user's fork (loganrooks/zlibrary@896cffa) to use bug fixes.
+
+[2025-04-16 01:20:41] - DevOps - Pushed Fixes to Fork - Successfully committed fixes for ParseError and Pylance errors (commit 896cffa) and pushed them to the main branch of the user's fork (loganrooks/zlibrary).
+
+[2025-04-16 01:17:52] - Debug - Pylance Error Fix (BookNotFound) - Defined `BookNotFound` exception in `zlibrary/src/zlibrary/exception.py` and re-added the import to `zlibrary/src/zlibrary/libasync.py` after user feedback identified it was missing.
+
+[2025-04-16 01:15:35] - Debug - Pylance Error Investigation (zlibrary fork) - Investigated Pylance errors reported after code fixes. Added missing imports (`BookNotFound`, `ParseError`) to `zlibrary/src/zlibrary/libasync.py` and (`re`, `Dict`, `Any`) to `zlibrary/src/zlibrary/abs.py`. Confirmed remaining `reportMissingImports` errors (`aiohttp.abc`, `ebooklib`, `fitz`, `pytest`, `python_bridge`) are likely due to Pylance environment/path configuration (not using correct venv interpreter) as dependencies are correctly listed in `pyproject.toml` and `requirements.txt`.
+
+[2025-04-16 00:02:36] - Code - Applied Fixes (zlibrary ID Bugs) - Successfully applied code changes to `zlibrary/src/zlibrary/libasync.py` and `zlibrary/src/zlibrary/abs.py` to fix `get_by_id` (using search) and `search(id:...)` (handling direct page) ParseError issues.
+
 [2025-04-15 23:18:25] - Debug - Analysis Complete (zlibrary ID Bugs) - Pinpointed root causes in external `sertraline/zlibrary` source: 1) `get_by_id` fails in `abs.py:BookItem.fetch` (line 449) due to 404 from incorrect URL built in `libasync.py` (line 203). 2) `search(id:...)` fails in `abs.py:SearchPaginator.parse_page` (lines 44 or 57) due to unexpected HTML structure for ID search results.
 
 [2025-04-15 23:14:52] - Debug - Located Source Code (zlibrary) - Found source code URL for the external `zlibrary` Python library (v1.0.2) using `pip show zlibrary`. URL: https://github.com/sertraline/zlibrary.

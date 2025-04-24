@@ -1,5 +1,11 @@
 # Auto-Coder Feedback
 <!-- Entries below should be added reverse chronologically (newest first) -->
+### Feedback: Incorrect Venv Path Assumption - [2025-04-16 08:32:47]
+- **Source**: User Intervention
+- **Issue**: Assumed Python venv path was `./venv/bin/python` based on `setup_venv.sh`, ignoring the actual implementation in `src/lib/venv-manager.ts` which uses a cache directory (`~/.cache/zlibrary-mcp/zlibrary-mcp-venv/bin/python`). This caused initial `pytest` commands to fail.
+- **Action**: Corrected the path based on user feedback and `venv-manager.ts` logic. Will ensure to check relevant implementation files (`venv-manager.ts`) for environment details in the future, not just setup scripts. Logged for handover improvement.
+
+
 ### Feedback: Improve Test Coverage in TDD Task - [2025-04-15 05:05:00]
 - **Source**: User Feedback
 - **Issue**: User noted that the recommended TDD task should explicitly include increasing the low test coverage for `src/lib/zlibrary-api.ts` (currently ~3%).

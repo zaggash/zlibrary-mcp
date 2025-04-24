@@ -1,6 +1,69 @@
 # Debugger Specific Memory
 <!-- Entries below should be added reverse chronologically (newest first) -->
 ## Issue History
+### Issue: REG-001 - Tool Call Regression ("Invalid tool name type" / Python TypeError) - Status: Resolved - [2025-04-23 22:12:51]
+- **Reported**: [2025-04-23 18:13:24] (via Task Description) / **Severity**: High / **Symptoms**: 1. `Error: Invalid tool name type.` when calling tools. 2. `TypeError: ... argument after ** must be a mapping, not list` in Python bridge when calling tools.
+- **Investigation**:
+    1. Reviewed `src/index.ts` `CallToolRequest` handler.
+    2. Hypothesized `name` vs `tool_name` key mismatch based on error 1.
+    3. Added logging to `src/index.ts` to inspect `request.params`.
+    4. Attempted tool call (`get_download_limits`), encountered error 2 instead of error 1.
+    5. Fixed `toolName` destructuring in `src/index.ts` (line 309) to use `tool_name`.
+    6. Fixed Python `TypeError` cause in `lib/python_bridge.py` (line 599) by removing `**args_dict` for `get_download_limits`.
+    7. Retested tool calls, error 2 resolved for `get_download_limits` but persisted for `search_books`.
+    8. Analyzed `src/lib/python-bridge.ts` and `src/lib/zlibrary-api.ts`, identified incorrect argument passing (array vs object) to `PythonShell` as root cause of error 2.
+    9. Corrected `callPythonFunction` signature in `src/lib/python-bridge.ts` (line 17) and `src/lib/zlibrary-api.ts` (line 26) to expect `Record<string, any>`.
+    10. Corrected argument passing in `src/lib/zlibrary-api.ts` calls to `callPythonFunction` (lines 132, 141, 149, etc.) to pass objects.
+    11. Corrected `PythonShell` options `args` in `src/lib/zlibrary-api.ts` (line 34) to pass serialized object directly.
+    12. Reverted `src/index.ts` destructuring (line 309) back to use `name` after error 1 reappeared, confirming client sends `name`.
+    13. Removed diagnostic logging from `src/index.ts`.
+    14. Verified fixes with manual tool calls (`get_download_limits`, `search_books`) and `npm test` (after updating test expectations).
+- **Root Cause**: 
+    1. **REG-001 ("Invalid tool name type"):** Mismatch between tool name key sent by client (`name`) and key expected by server (`tool_name` initially, corrected back to `name`) in `src/index.ts`.
+    2. **Python TypeError:** Incorrect argument passing from Node.js to Python bridge. `src/lib/zlibrary-api.ts` passed arguments as a JSON array string, while Python script expected a dictionary for `**` unpacking.
+- **Fix Applied**:
+    1. Corrected `CallToolRequest` handler in `src/index.ts` (line 309) to destructure `name` key: `const { name: toolName, ... } = request.params;`.
+    2. Corrected `callPythonFunction` signature in `src/lib/zlibrary-api.ts` (line 26) to expect `Record<string, any>`.
+    3. Corrected calls to `callPythonFunction` in `src/lib/zlibrary-api.ts` (lines 133, 141, 149, etc.) to pass argument objects.
+    4. Corrected `PythonShell` options in `src/lib/zlibrary-api.ts` (line 34) to pass serialized object correctly: `args: [functionName, serializedArgs]`.
+    5. Updated expectations in `__tests__/zlibrary-api.test.js` to match object argument passing.
+- **Verification**: Manual calls to `get_download_limits` and `search_books` succeeded. `npm test` passed after test updates.
+- **Related Issues**: None.
+
+
+### Issue: Issue-BookNotFound-IDLookup-02 - `BookNotFound` on ID lookups (search workaround) - Status: Root Cause Confirmed (External) - [2025-04-16 07:27:22]
+- **Reported**: [2025-04-16 03:12:00] (via ActiveContext) / **Severity**: High (Blocks ID-based tools) / **Symptoms**: `zlibrary.exception.BookNotFound` when calling `get_book_by_id` or other ID-based tools using the local fork with the search workaround.
+- **Investigation**:
+    1. Added detailed logging to `SearchPaginator.parse_page` in `zlibrary/src/zlibrary/abs.py`. [2025-04-16 03:23:12]
+    2. Tested `get_book_by_id` via `use_mcp_tool`; traceback showed error raised in `libasync.py` before `abs.py` parsing logs. [2025-04-16 06:09:33]
+    3. Used `fetcher` tool to get raw HTML for `id:` search URL (`https://z-library.sk/s/id:3433851?exact=1`). Confirmed website returns standard search page with "nothing has been found". [2025-04-16 06:11:12]
+    4. Added detailed logging to `get_by_id` in `zlibrary/src/zlibrary/libasync.py` around the search call. [2025-04-16 06:12:00]
+    5. Enabled logging output by fixing `zlibrary/src/zlibrary/logger.py` (removed NullHandler, added StreamHandler to stderr, set level DEBUG). [2025-04-16 07:15:21]
+    6. Tested `get_book_by_id` again via `use_mcp_tool`. Captured logs from Python bridge. [2025-04-16 07:23:16]
+    7. Analyzed logs: Confirmed `libasync.py` calls `search`, `abs.py` parses the page, finds `#searchResultBox`, finds the "notFound" div inside it, leading `libasync.py` to log "returned 0 results" and correctly raise `BookNotFound`. [2025-04-16 07:23:30]
+    8. Refined analysis based on user feedback: The failure of the `id:` search prevents discovery of the correct book page URL (which includes a slug), making direct fetching impossible. [2025-04-16 07:27:22]
+- **Root Cause**: Z-Library website search feature no longer reliably returns results for `id:{book_id}` queries. This prevents the library from discovering the correct book page URL (including the slug) needed for direct fetching.
+- **Fix Applied**: None (Issue is external). Diagnostic logging added to `libasync.py` and `logger.py` was configured.
+- **Verification**: Logs confirm the library's behavior matches the website's response to the failing `id:` search.
+- **Related Issues**: Issue-ParseError-IDLookup-01 (Superseded by this finding), Decision-IDLookupStrategy-01, Pattern: External Library URL Construction Error (Updated)
+
+
+### Issue: Issue-BookNotFound-IDLookup-02 - `BookNotFound` on ID lookups (search workaround) - Status: Root Cause Confirmed (External) - [2025-04-16 07:23:30]
+- **Reported**: [2025-04-16 03:12:00] (via ActiveContext) / **Severity**: High (Blocks ID-based tools) / **Symptoms**: `zlibrary.exception.BookNotFound` when calling `get_book_by_id` or other ID-based tools using the local fork with the search workaround.
+- **Investigation**:
+    1. Added detailed logging to `SearchPaginator.parse_page` in `zlibrary/src/zlibrary/abs.py`. [2025-04-16 03:23:12]
+    2. Tested `get_book_by_id` via `use_mcp_tool`; traceback showed error raised in `libasync.py` before `abs.py` parsing logs. [2025-04-16 06:09:33]
+    3. Used `fetcher` tool to get raw HTML for `id:` search URL (`https://z-library.sk/s/id:3433851?exact=1`). Confirmed website returns standard search page with "nothing has been found". [2025-04-16 06:11:12]
+    4. Added detailed logging to `get_by_id` in `zlibrary/src/zlibrary/libasync.py` around the search call. [2025-04-16 06:12:00]
+    5. Enabled logging output by fixing `zlibrary/src/zlibrary/logger.py` (removed NullHandler, added StreamHandler to stderr, set level DEBUG). [2025-04-16 07:15:21]
+    6. Tested `get_book_by_id` again via `use_mcp_tool`. Captured logs from Python bridge. [2025-04-16 07:23:16]
+    7. Analyzed logs: Confirmed `libasync.py` calls `search`, `abs.py` parses the page, finds `#searchResultBox`, finds the "notFound" div inside it, leading `libasync.py` to log "returned 0 results" and correctly raise `BookNotFound`. [2025-04-16 07:23:30]
+- **Root Cause**: Z-Library website search feature no longer reliably returns results for `id:{book_id}` queries, even for valid IDs. The library correctly reflects this external behavior.
+- **Fix Applied**: None (Issue is external). Diagnostic logging added to `libasync.py` and `logger.py` was configured.
+- **Verification**: Logs confirm the library's behavior matches the website's response.
+- **Related Issues**: Issue-ParseError-IDLookup-01 (Superseded by this finding), Decision-IDLookupStrategy-01, Pattern: External Library URL Construction Error (Updated)
+
+
 ### Issue: Issue-ParseError-IDLookup-01 - `zlibrary.exception.ParseError` on ID-Based Lookups - Status: Open (Workaround Proposed) - [2025-04-15 21:51:00]
 - **Reported**: [2025-04-15 18:09:32] (via Memory Bank / TDD Manual Verification) / **Severity**: High (Blocks `get_book_by_id`, `get_download_info`, `download_book_to_file`) / **Symptoms**: Python `zlibrary.exception.ParseError: Failed to parse https://z-library.sk/book/BOOK_ID.`
 - **Investigation**:
