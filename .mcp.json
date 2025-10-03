@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "zlibrary": {
+      "command": "node",
+      "args": ["dist/index.js"],
+      "env": {
+        "ZLIBRARY_EMAIL": "logansrooks@gmail.com",
+        "ZLIBRARY_PASSWORD": "190297@Lsr"
+      }
+    }
+  }
+}
